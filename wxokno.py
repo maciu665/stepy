@@ -66,7 +66,7 @@ menuplik = wx.Menu()
 #
 menubar.Append(menuplik, '&Plik')
 ##
-mopenvtk = wx.MenuItem(menuplik,3001, '&Otwórz .dfc\tCtrl+O', "Otwiera plik *.dfc")
+mopenvtk = wx.MenuItem(menuplik,3001, '&Otwórz .stp\tCtrl+O', "Otwiera plik *.stp")
 menuplik.Append(mopenvtk)
 
 menuplik.AppendSeparator()
@@ -173,15 +173,15 @@ def recognize_face(a_face):
         print("not implemented")
 
 def get_face(shp, *kwargs):
-
+    print("SHP",shp)
     for shape in shp:
         print(dir(shape))
         ntree.DeleteAllItems()
         print("Face selected: ", shape)
         #recognize_face()
         surf = BRepAdaptor_Surface(topods_Face(shape), True)
-        print(dir(surf))
-        sys.exit()
+        # print(dir(surf))
+        # sys.exit()
         stypetxt = surf_type2text(surf.GetType())
         selsurf = ntree.AddRoot(stypetxt)
         # sys.exit()
@@ -254,6 +254,8 @@ display.DisplayShape(shp, update=True)
 #add_menu("recognition")
 #add_function_to_menu("recognition", recognize_batch)
 display.SetSelectionModeFace()
+# display.SetSelectionModeVertex()
+print(dir(display))
 
 
 '''

@@ -1,26 +1,140 @@
-
-from __future__ import print_function
-
+# -*- coding: utf-8 -*-
+#!/usr/bin/python
+#TODO
+#tworzenie nowego vml
+#załączone pliki?
+# powrót do rozmiaru po screenshocie
+#
+#IMPORTY
+import wx
+#import vtk
+import builtins
 import os
-import os.path
 import sys
+# from vtk.util.colors import *
+import gzip, zipfile
+#from kflow_vtkfun import *
+import wx.lib.agw.customtreectrl as CT
+from xml.dom.minidom import *
+import shutil
+import time
+#import vtkmodules
+#import vtkmodules.all
+from step_fun import *
 
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.GeomAbs import GeomAbs_Plane, GeomAbs_Cylinder
 from OCC.Core.TopoDS import topods_Face,TopoDS_Iterator
+from OCC.Core.GCPnts import GCPnts_AbscissaPoint, GCPnts_UniformAbscissa
 # from OCC.Core import BRepAdaptor
 # print(dir(BRepAdaptor))
 from OCC.Core.BRep import BRep_Tool, BRep_Tool_Pnt, BRep_Tool_IsGeometric, BRep_Tool_Parameter, BRep_Tool_Curve
 # sys.exit()
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface,BRepAdaptor_Curve
 from OCC.Display.SimpleGui import init_display
+#from OCC.Display.wxDisplay import wxBaseViewer
+from mywxDisplay import wxBaseViewer,wxViewer3d
 #from OCC.Core.BRepool import Curve
 
 from OCC.Extend.TopologyUtils import TopologyExplorer
 
+from OCCUtils.edge import Edge
 
-def read_step_file(filename):
+softname = "STEPY"
+
+builtins.actors = []
+builtins.parallel = True
+builtins.vmisarray = None
+builtins.disparray = None
+builtins.actor2dcol = [1,1,1]
+builtins.helpActor = None
+builtins.helpOn = False
+
+actors = []
+
+#APLIKACJA
+aplikacja=wx.App(False)
+
+################################################################################################################
+
+root=wx.Frame(None, -1, softname, wx.Point(0,0), wx.Size(1100, 1000))
+# root.SetIcon(wx.Icon('kon.ico', wx.BITMAP_TYPE_ICO))
+root.Centre()
+#builtins.statusbar = root.CreateStatusBar()
+#builtins.statusbar.SetStatusText('')
+
+menubar = wx.MenuBar()
+menuplik = wx.Menu()
+#
+menubar.Append(menuplik, '&Plik')
+##
+mopenvtk = wx.MenuItem(menuplik,3001, '&Otwórz .stp\tCtrl+O', "Otwiera plik *.stp")
+menuplik.Append(mopenvtk)
+
+menuplik.AppendSeparator()
+pquit = wx.MenuItem(menuplik, 3003, '&Zakończ\tCtrl+Q', "Zakończ")
+#pquit.SetBitmap(wx.Image('../gf/exit_16.png',wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+menuplik.Append(pquit)
+#
+menuview = wx.Menu()
+menubar.Append(menuview, "&Widok")
+root.SetMenuBar(menubar)
+
+################################################################################################################
+
+mbox = wx.GridBagSizer(5,0)
+sbox = wx.GridBagSizer(5,5)
+#rbox = wx.GridBagSizer(0,0)
+
+stepwin = wxViewer3d(root)
+print(stepwin)
+print(dir(stepwin))
+stepwin.InitDriver()
+display = stepwin._display
+print(display)
+# sys.exit()
+
+#displayvtk = vtkwin(root, -1, actors)
+#displayvtk.Enable(1)
+#displayvtk.AddObserver("ExitEvent", lambda o,e,f=root: f.Close())
+#ren = vtk.vtkRenderer()
+#displayvtk.GetRenderWindow().AddRenderer(ren)
+
+ntree = CT.CustomTreeCtrl(root, 665, size=(300,700), style=wx.SUNKEN_BORDER, agwStyle=CT.TR_HAS_BUTTONS | CT.TR_HAS_VARIABLE_ROW_HEIGHT)
+
+#rpanel = wx.Panel(root,size=(50,100))
+
+details = wx.TextCtrl(root, -1, "", size=(200, 150), style = wx.TE_MULTILINE)
+details.SetEditable(False)
+details.SetToolTip(wx.ToolTip("Szczegóły"))
+
+sbox.Add(ntree,(0,0),(1,2),wx.EXPAND,4 )
+sbox.Add(details,(1,0),(1,2),wx.EXPAND,4 )
+sbox.AddGrowableRow(0)
+
+mbox.Add(sbox,(0,0),(1,1),wx.EXPAND,4 )
+mbox.Add(stepwin,(0,1),(1,1),wx.EXPAND,4 )
+#mbox.Add(displayvtk,(0,2),(1,1),wx.EXPAND,4 )
+#mbox.Add(rpanel,(0,3),(1,1),wx.EXPAND,4 )
+
+#rpanel.Show(False)
+
+mbox.AddGrowableRow(0)
+#rbox.AddGrowableRow(1)
+mbox.AddGrowableCol(1)
+sbox.AddGrowableCol(0)
+
+root.SetSizerAndFit(mbox)
+root.Maximize(True)
+root.Refresh()
+
+def elen(edg):
+    curve_adapt = BRepAdaptor_Curve(edg)
+    length = GCPnts_AbscissaPoint().Length(curve_adapt, curve_adapt.FirstParameter(), curve_adapt.LastParameter(), 1e-6)
+    return length
+
+def get_step_file(filename):
     """read the STEP file and returns a compound"""
     step_reader = STEPControl_Reader()
     status = step_reader.ReadFile(filename)
@@ -38,17 +152,9 @@ def read_step_file(filename):
 
 
 def recognize_face(a_face):
-    """Takes a TopoDS shape and tries to identify its nature
-    whether it is a plane a cylinder a torus etc.
-    if a plane, returns the normal
-    if a cylinder, returns the radius
-    """
     surf = BRepAdaptor_Surface(a_face, True)
     surf_type = surf.GetType()
     if surf_type == GeomAbs_Plane:
-        print("--> plane")
-        # look for the properties of the plane
-        # first get the related gp_Pln
         gp_pln = surf.Plane()
         location = gp_pln.Location()  # a point of the plane
         normal = gp_pln.Axis().Direction()  # the plane normal
@@ -61,13 +167,9 @@ def recognize_face(a_face):
         )
         print("--> Normal (global coordinates)", normal.X(), normal.Y(), normal.Z())
     elif surf_type == GeomAbs_Cylinder:
-        print("--> cylinder")
-        # look for the properties of the cylinder
-        # first get the related gp_Cyl
         gp_cyl = surf.Cylinder()
-        location = gp_cyl.Location()  # a point of the axis
-        axis = gp_cyl.Axis().Direction()  # the cylinder axis
-        # then export location and normal to the console output
+        location = gp_cyl.Location()
+        axis = gp_cyl.Axis().Direction()
         print(
             "--> Location (global coordinates)",
             location.X(),
@@ -76,20 +178,21 @@ def recognize_face(a_face):
         )
         print("--> Axis (global coordinates)", axis.X(), axis.Y(), axis.Z())
     else:
-        # TODO there are plenty other type that can be checked
-        # see documentation for the BRepAdaptor class
-        # https://www.opencascade.com/doc/occt-6.9.1/refman/html/class_b_rep_adaptor___surface.html
         print("not implemented")
 
-
-def recognize_clicked(shp, *kwargs):
-    """This is the function called every time
-    a face is clicked in the 3d view
-    """
-    for shape in shp:  # this should be a TopoDS_Face TODO check it is
-        print("Face selected: ", shape)
-        recognize_face(topods_Face(shape))
+def get_face(shp, *kwargs):
+    print("SHP",shp)
+    for shape in shp:
         print(dir(shape))
+        ntree.DeleteAllItems()
+        print("Face selected: ", shape)
+        #recognize_face()
+        surf = BRepAdaptor_Surface(topods_Face(shape), True)
+        # print(dir(surf))
+        # sys.exit()
+        stypetxt = surf_type2text(surf.GetType())
+        selsurf = ntree.AddRoot(stypetxt)
+        # sys.exit()
         print("NBCHILDREN",shape.NbChildren())
         tdi = TopoDS_Iterator(shape)
         tdi.Initialize(shape)
@@ -103,8 +206,11 @@ def recognize_clicked(shp, *kwargs):
                 ttshp = twi.Value()
                 tei = TopoDS_Iterator(ttshp)
                 tei.Initialize(ttshp)
-                print(dir(ttshp))
+                #print(dir(ttshp))
                 print("shapetype", ttshp.ShapeType())
+
+
+
                 while tei.More():
                     tttshp = tei.Value()
                     print("TYP 2", tttshp)
@@ -112,43 +218,45 @@ def recognize_clicked(shp, *kwargs):
                     tei.Next()
                 #print("TYP", ttshp.ShapeType())
                 print("TYP", ttshp)
+                print("ELEN",elen(ttshp))
                 curv = BRepAdaptor_Curve(ttshp).Curve()
+                print(dir(curv))
                 print(curv)
                 # print(curv.Circle())
                 a = 0.0
                 b = 0.0
                 [curve_handle, a, b] = BRep_Tool.Curve(ttshp)
-                print(curve_handle.DynamicType().Name())
+                print(dir(curve_handle))
+                # print(curve_handle.D0)
+                ctypename = curve_handle.DynamicType().Name().replace("Geom_","")
+                print(ctypename)
+                nedge = ntree.AppendItem(selsurf, ctypename)
+                telen = ntree.AppendItem(nedge, "Len=%.2f"%elen(ttshp))
                 # print(curv.GetType())
-                print(dir(curv))
+                #print(dir(curv))
                 twi.Next()
-            print(dir(tshp))
-            print(tshp)
+            #print(dir(tshp))
+            #print(tshp)
             print(tshp.ShapeType())
-            print(tshp.TShape())
             tdi.Next()
+        ntree.ExpandAll()
 
+# first loads the STEP file and display
+# shp = read_step_file("E:/GIT/DOKTORAT/face_recognition_sample_part.stp")
+# def getstep(e):
 
-def recognize_batch(event=None):
-    """Menu item : process all the faces of a single shape"""
-    # then traverse the topology using the Topo class
-    t = TopologyExplorer(shp)
-    # loop over faces only
-    for f in t.faces():
-        # call the recognition function
-        recognize_face(f)
+def getstep(e):
+    dlg = wx.FileDialog(root, "Wskaż plik STP", "", "", "*.*", wx.FD_OPEN)
+    if dlg.ShowModal() == wx.ID_OK:
+        ofilename = dlg.GetFilename()
+        dirname = dlg.GetDirectory()
+        nazwa = (os.path.join(dirname, ofilename))
+        dlg.Destroy()
+    else:
+        sys.exit()
 
-
-def exit(event=None):
-    sys.exit()
-
-
-if __name__ == "__main__":
-    display, start_display, add_menu, add_function_to_menu = init_display()
-    display.register_select_callback(recognize_clicked)
-    # first loads the STEP file and display
-    # shp = read_step_file("E:/GIT/DOKTORAT/face_recognition_sample_part.stp")
-    shp = read_step_file("E:/GIT/DOKTORAT/model2.stp")
+    # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
+    shp = get_step_file(nazwa)
     #shp = read_step_file("E:/GIT/DOKTORAT/all_together.step")
     print(shp)
     print(dir(shp))
@@ -168,10 +276,37 @@ if __name__ == "__main__":
         tdi.Next()
     '''
     display.DisplayShape(shp, update=True)
-    add_menu("recognition")
-    add_function_to_menu("recognition", recognize_batch)
     display.SetSelectionModeFace()
-    #print(dir(display))
-    #sys.exit()
-    start_display()
-    # display.SetSelectionModeFace()
+    # display.SetSelectionModeShape()
+    display.register_select_callback(get_face)
+
+root.Bind(wx.EVT_MENU, getstep, id=3001)
+'''
+root.Bind(wx.EVT_COMBOBOX, updatemenu, id=501)
+root.Bind(wx.EVT_COMBOBOX, updatemenu, id=502)
+root.Bind(wx.EVT_COMBOBOX, updatemenu, id=503)
+ntree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, treesel)
+ntree.Bind(wx.EVT_COMBOBOX, ntback, id=1006)
+ntree.Bind(CT.EVT_TREE_ITEM_CHECKED, koza)
+for i in range(2000,2100):
+	ntree.Bind(wx.EVT_COMBOBOX, ntsmod, id=i)
+for i in range(4000,6100):
+	ntree.Bind(wx.EVT_COMBOBOX, ntsply, id=i)
+ntree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, treerefresh)
+ntree.Bind(wx.EVT_TREE_ITEM_EXPANDED, treerefresh)
+root.Bind(wx.EVT_CLOSE, onexit)
+root.Bind(wx.EVT_MENU, saveimage, id=3101)
+root.Bind(wx.EVT_MENU, showmax, id=3202)
+root.Bind(wx.EVT_MENU, fullon, id=3301)
+for i in range(3310,3312):
+	root.Bind(wx.EVT_MENU, anaglyph, id=i)
+root.Bind(wx.EVT_MENU, showcax, id=3302)
+'''
+
+#displayvtk.widget.SetEnabled(1)
+#displayvtk.widget.InteractiveOff()
+
+#ren.GetActiveCamera().SetParallelProjection(True)
+root.Show()
+
+aplikacja.MainLoop()
