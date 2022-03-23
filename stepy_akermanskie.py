@@ -7,19 +7,19 @@
 #
 #IMPORTY
 import wx
-#import vtk
+import vtk
 import builtins
 import os
 import sys
 # from vtk.util.colors import *
 import gzip, zipfile
-#from kflow_vtkfun import *
+from vtkfun import *
 import wx.lib.agw.customtreectrl as CT
 from xml.dom.minidom import *
 import shutil
 import time
-#import vtkmodules
-#import vtkmodules.all
+import vtkmodules
+import vtkmodules.all
 from step_fun import *
 
 from OCC.Core.STEPControl import STEPControl_Reader
@@ -41,7 +41,18 @@ from OCC.Extend.TopologyUtils import TopologyExplorer
 
 from OCCUtils.edge import Edge
 
-softname = "STEPY"
+from OCC.Core.BRep import BRep_Builder, BRep_Tool
+from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeSphere
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
+from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopoDS import TopoDS_Compound, topods_Face
+from OCC.Core.TopAbs import TopAbs_FACE
+from OCC.Core.TopLoc import TopLoc_Location
+
+softname = "STEPY AKERMAŃSKIE PRO"
 
 builtins.actors = []
 builtins.parallel = True
@@ -95,11 +106,11 @@ display = stepwin._display
 print(display)
 # sys.exit()
 
-#displayvtk = vtkwin(root, -1, actors)
-#displayvtk.Enable(1)
+displayvtk = vtkwin(root, -1, actors)
+displayvtk.Enable(1)
 #displayvtk.AddObserver("ExitEvent", lambda o,e,f=root: f.Close())
-#ren = vtk.vtkRenderer()
-#displayvtk.GetRenderWindow().AddRenderer(ren)
+ren = vtk.vtkRenderer()
+displayvtk.GetRenderWindow().AddRenderer(ren)
 
 ntree = CT.CustomTreeCtrl(root, 665, size=(300,700), style=wx.SUNKEN_BORDER, agwStyle=CT.TR_HAS_BUTTONS | CT.TR_HAS_VARIABLE_ROW_HEIGHT)
 
@@ -115,7 +126,7 @@ sbox.AddGrowableRow(0)
 
 mbox.Add(sbox,(0,0),(1,1),wx.EXPAND,4 )
 mbox.Add(stepwin,(0,1),(1,1),wx.EXPAND,4 )
-#mbox.Add(displayvtk,(0,2),(1,1),wx.EXPAND,4 )
+mbox.Add(displayvtk,(0,2),(1,1),wx.EXPAND,4 )
 #mbox.Add(rpanel,(0,3),(1,1),wx.EXPAND,4 )
 
 #rpanel.Show(False)
@@ -123,6 +134,7 @@ mbox.Add(stepwin,(0,1),(1,1),wx.EXPAND,4 )
 mbox.AddGrowableRow(0)
 #rbox.AddGrowableRow(1)
 mbox.AddGrowableCol(1)
+#mbox.AddGrowableCol(2)
 sbox.AddGrowableCol(0)
 
 root.SetSizerAndFit(mbox)
@@ -246,14 +258,22 @@ def get_face(shp, *kwargs):
 # def getstep(e):
 
 def getstep(e):
-    dlg = wx.FileDialog(root, "Wskaż plik STP", "", "", "*.*", wx.FD_OPEN)
-    if dlg.ShowModal() == wx.ID_OK:
-        ofilename = dlg.GetFilename()
-        dirname = dlg.GetDirectory()
-        nazwa = (os.path.join(dirname, ofilename))
-        dlg.Destroy()
+    if (e):
+        dlg = wx.FileDialog(root, "Wskaż plik STP", "", "", "*.*", wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            ofilename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+            nazwa = (os.path.join(dirname, ofilename))
+            dlg.Destroy()
+        else:
+            sys.exit()
     else:
-        sys.exit()
+        nazwa = "E:/GIT/DOKTORAT/model2.stp"
+        nazwa = "E:/GIT/DOKTORAT/F4150-151-002.stp"
+        nazwa = "E:/GIT/DOKTORAT/F4100-001-001.stp"
+        nazwa = "E:/GIT/DOKTORAT/ASSES/F4100-001-001.stp"
+        nazwa = "E:/GIT/DOKTORAT/STEPY/IPE 160 - 1211.stp"
+        print(os.path.exists(nazwa))
 
     # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
     shp = get_step_file(nazwa)
@@ -275,10 +295,114 @@ def getstep(e):
         print(tshp.ShapeType())
         tdi.Next()
     '''
+    display.EraseAll()
+
+    BRepMesh_IncrementalMesh(shp, 0.25)
+    builder = BRep_Builder()
+    comp = TopoDS_Compound()
+    builder.MakeCompound(comp)
+
+    bt = BRep_Tool()
+    ex = TopExp_Explorer(shp, TopAbs_FACE)
+
+    pts = vtk.vtkPoints()
+    ugrid = vtk.vtkUnstructuredGrid()
+
+
+    while ex.More():
+        print("FEJS")
+        face = topods_Face(ex.Current())
+        location = TopLoc_Location()
+        facing = bt.Triangulation(face, location)
+        tab = facing.Nodes()
+        tri = facing.Triangles()
+        print(tab)
+        print(dir(tab))
+
+        # for i in range(facing.NbNodes()):
+            # print("pt",tab.Value(i))
+            # pts.InsertPoint(i,tab.Value(i))
+
+
+        for i in range(1, facing.NbTriangles() + 1):
+            trian = tri.Value(i)
+            index1, index2, index3 = trian.Get()
+            # print("pt",tab.Value(index1))
+            # print("pt",tab.Value(index1).Coord()[0])
+            # print(dir(tab.Value(index1)))
+            '''
+            pts.InsertPoint(index1,tab.Value(index1).Coord()[0],tab.Value(index1).Coord()[1],tab.Value(index1).Coord()[2])
+            pts.InsertPoint(index2,tab.Value(index2).Coord()[0],tab.Value(index2).Coord()[1],tab.Value(index2).Coord()[2])
+            pts.InsertPoint(index3,tab.Value(index3).Coord()[0],tab.Value(index3).Coord()[1],tab.Value(index3).Coord()[2])
+            '''
+            ti1 = pts.InsertNextPoint(tab.Value(index1).Coord()[0],tab.Value(index1).Coord()[1],tab.Value(index1).Coord()[2])
+            ti2 = pts.InsertNextPoint(tab.Value(index2).Coord()[0],tab.Value(index2).Coord()[1],tab.Value(index2).Coord()[2])
+            ti3 = pts.InsertNextPoint(tab.Value(index3).Coord()[0],tab.Value(index3).Coord()[1],tab.Value(index3).Coord()[2])
+
+            pointIds = vtk.vtkIdList()
+            pointIds.InsertId(0, ti1)
+            pointIds.InsertId(1, ti2)
+            pointIds.InsertId(2, ti3)
+            seid = ugrid.InsertNextCell(5, pointIds)
+            '''
+
+            for j in range(1, 4):
+                if j == 1:
+                    m = index1
+                    n = index2
+                elif j == 2:
+                    n = index3
+                elif j == 3:
+                    m = index2
+                me = BRepBuilderAPI_MakeEdge(tab.Value(m), tab.Value(n))
+
+                if me.IsDone():
+                    builder.Add(comp, me.Edge())
+            '''
+        ex.Next()
+
+    # print(pts)
+    ugrid.SetPoints(pts)
+    # print(ugrid)
+
+    gf = vtk.vtkGeometryFilter()
+    gf.SetInputData(ugrid)
+    gf.Update()
+
+    print("POINTS",gf.GetOutput().GetNumberOfPoints())
+
+    cpd = vtk.vtkCleanPolyData()
+    cpd.SetInputData(gf.GetOutput())
+    cpd.Update()
+
+    print("POINTS",cpd.GetOutput().GetNumberOfPoints())
+
+    nmapper = vtk.vtkDataSetMapper()
+    nmapper.SetInputConnection(cpd.GetOutputPort())
+    # nmapper.SetScalarModeToUsePointFieldData()
+    nmapper.ScalarVisibilityOff()
+    nActor = vtk.vtkActor()
+    nActor.SetMapper( nmapper )
+    vprop = nActor.GetProperty()
+    # vprop.LightingOff()
+    ren.RemoveAllViewProps()
+    ren.AddActor(nActor)
+
+    ren.ResetCamera()
+    displayvtk.Render()
+    print("POINTS",ugrid.GetNumberOfPoints())
+
+
+
+
+
     display.DisplayShape(shp, update=True)
+    display.DisplayShape(comp, update=True)
+    display.FitAll()
     display.SetSelectionModeFace()
     # display.SetSelectionModeShape()
     display.register_select_callback(get_face)
+    display.FitAll()
 
 root.Bind(wx.EVT_MENU, getstep, id=3001)
 '''
@@ -303,6 +427,7 @@ for i in range(3310,3312):
 root.Bind(wx.EVT_MENU, showcax, id=3302)
 '''
 
+getstep(0)
 #displayvtk.widget.SetEnabled(1)
 #displayvtk.widget.InteractiveOff()
 
