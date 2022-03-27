@@ -55,14 +55,10 @@ from OCC.Core.TopLoc import TopLoc_Location
 softname = "STEPY AKERMAŃSKIE PRO"
 
 builtins.actors = []
-builtins.parallel = True
-builtins.vmisarray = None
-builtins.disparray = None
-builtins.actor2dcol = [1,1,1]
-builtins.helpActor = None
-builtins.helpOn = False
 
 actors = []
+
+shtypes =["COMPOUND","COMPSOLID","SOLID","SHELL","FACE","WIRE","EDGE","VERTEX"]
 
 #APLIKACJA
 aplikacja=wx.App(False)
@@ -297,6 +293,19 @@ def getstep(e):
     '''
     display.EraseAll()
 
+
+    print("NBCHILDREN",shp.NbChildren())
+    tdi = TopoDS_Iterator(shp)
+    tdi.Initialize(shp)
+    while tdi.More():
+        print("SURF")
+        tshp = tdi.Value()
+        print(tshp.NbChildren())
+        print(tshp.ShapeType())
+        tdi.Next()
+
+    sys.exit()
+
     BRepMesh_IncrementalMesh(shp, 0.25)
     builder = BRep_Builder()
     comp = TopoDS_Compound()
@@ -435,3 +444,14 @@ getstep(0)
 root.Show()
 
 aplikacja.MainLoop()
+
+'''
+COMPOUND: A group of any of the shapes below.
+COMPSOLID: A set of solids connected by their faces. This expands the notions of WIRE and SHELL to solids.
+SOLID: A part of 3D space bounded by shells.
+SHELL: A set of faces connected by some of the edges of their wire boundaries. A shell can be open or closed.
+FACE: Part of a plane (in 2D geometry) or a surface (in 3D geometry) bounded by a closed wire. Its geometry is constrained (trimmed) by contours.
+WIRE: A sequence of edges connected by their vertices. It can be open or closed depending on whether the edges are linked or not.
+EDGE: A single dimensional shape corresponding to a curve, and bound by a vertex at each extremity.
+VERTEX: A zero-dimensional shape corresponding to a point in geometry.
+'''
