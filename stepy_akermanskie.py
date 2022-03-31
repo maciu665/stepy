@@ -25,13 +25,14 @@ from step_fun import *
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.GeomAbs import GeomAbs_Plane, GeomAbs_Cylinder
-from OCC.Core.TopoDS import topods_Face,TopoDS_Iterator
+from OCC.Core.TopoDS import topods_Face,TopoDS_Iterator,TopoDS_ListOfShape
 from OCC.Core.GCPnts import GCPnts_AbscissaPoint, GCPnts_UniformAbscissa
 # from OCC.Core import BRepAdaptor
 # print(dir(BRepAdaptor))
 from OCC.Core.BRep import BRep_Tool, BRep_Tool_Pnt, BRep_Tool_IsGeometric, BRep_Tool_Parameter, BRep_Tool_Curve
 # sys.exit()
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface,BRepAdaptor_Curve
+from OCC.Core.TopoDS import topods_Vertex
 from OCC.Display.SimpleGui import init_display
 #from OCC.Display.wxDisplay import wxBaseViewer
 from mywxDisplay import wxBaseViewer,wxViewer3d
@@ -292,19 +293,81 @@ def getstep(e):
         tdi.Next()
     '''
     display.EraseAll()
+    allpoints = []
+    sedges = []
 
-
-    print("NBCHILDREN",shp.NbChildren())
-    tdi = TopoDS_Iterator(shp)
-    tdi.Initialize(shp)
-    while tdi.More():
-        print("SURF")
-        tshp = tdi.Value()
+    print("NBCHILDREN",shp.NbChildren(),shtypes[shp.ShapeType()])
+    tsldi = TopoDS_Iterator(shp)
+    tsldi.Initialize(shp)
+    while tsldi.More():
+        print("SHELL")
+        tshp = tsldi.Value()
         print(tshp.NbChildren())
-        print(tshp.ShapeType())
-        tdi.Next()
+        print(tshp.ShapeType(),shtypes[tshp.ShapeType()])
+        tshli = TopoDS_Iterator(tshp)
+        tshli.Initialize(tshp)
+        while tshli.More():
+            print("FACE")
+            ttshp = tshli.Value()
+            print(ttshp.NbChildren())
+            print(ttshp.ShapeType(),shtypes[ttshp.ShapeType()])
+            tfaci = TopoDS_Iterator(ttshp)
+            tfaci.Initialize(ttshp)
+            while tfaci.More():
+                tttshp = tfaci.Value()
+                print(tttshp.NbChildren())
+                print(tttshp.ShapeType(),shtypes[tttshp.ShapeType()])
+                twiri = TopoDS_Iterator(tttshp)
+                twiri.Initialize(tttshp)
+                while twiri.More():
+                    ttttshp = twiri.Value()
+                    print(ttttshp.NbChildren())
+                    print(ttttshp.ShapeType(),shtypes[ttttshp.ShapeType()])
 
-    sys.exit()
+
+
+                    curv = BRepAdaptor_Curve(ttttshp).Curve()
+                    # print(dir(curv))
+                    # print(curv)
+                    # print(curv.Circle())
+                    a = 0.0
+                    b = 0.0
+                    [curve_handle, a, b] = BRep_Tool.Curve(ttttshp)
+                    # print(dir(curve_handle))
+                    # print(curve_handle.D0)
+                    ctypename = curve_handle.DynamicType().Name().replace("Geom_","")
+                    print(ctypename)
+                    if ctypename == "Line":
+                        tveri = TopoDS_Iterator(ttttshp)
+                        tveri.Initialize(ttttshp)
+                        while tveri.More():
+                            tttttshp = tveri.Value()
+                            print(tttttshp.NbChildren())
+                            print(tttttshp.ShapeType(),shtypes[tttttshp.ShapeType()])
+                            # print(dir(tttttshp))
+
+                            v = topods_Vertex(tttttshp)
+                            pnt = BRep_Tool.Pnt(v)
+                            print("3d gp_Pnt selected coordinates : X=", pnt.X(), "Y=", pnt.Y(), "Z=", pnt.Z())
+                            tveri.Next()
+
+                            allpoints.append([pnt.X(),pnt.Y(),pnt.Z()])
+
+
+                    # nedge = ntree.AppendItem(selsurf, ctypename)
+                    # telen = ntree.AppendItem(nedge, "Len=%.2f"%elen(ttshp))
+
+                    twiri.Next()
+
+
+
+                tfaci.Next()
+
+            tshli.Next()
+
+        tsldi.Next()
+
+    print(len(allpoints))
 
     BRepMesh_IncrementalMesh(shp, 0.25)
     builder = BRep_Builder()
@@ -316,6 +379,22 @@ def getstep(e):
 
     pts = vtk.vtkPoints()
     ugrid = vtk.vtkUnstructuredGrid()
+
+    pts2 = vtk.vtkPoints()
+    ugrid2 = vtk.vtkUnstructuredGrid()
+
+
+
+
+    for k in range(int(len(allpoints)/2)):
+        ti1 = pts2.InsertNextPoint(allpoints[k*2])
+        ti2 = pts2.InsertNextPoint(allpoints[k*2+1])
+        pointIds = vtk.vtkIdList()
+        pointIds.InsertId(0, ti1)
+        pointIds.InsertId(1, ti2)
+        seid = ugrid2.InsertNextCell(3, pointIds)
+    ugrid2.SetPoints(pts2)
+
 
 
     while ex.More():
@@ -386,6 +465,26 @@ def getstep(e):
 
     print("POINTS",cpd.GetOutput().GetNumberOfPoints())
 
+    emapper = vtk.vtkDataSetMapper()
+    emapper.SetInputData(ugrid2)
+    emapper.ScalarVisibilityOff()
+
+    eactor = vtk.vtkActor()
+    eactor.SetMapper( emapper )
+    eprop = eactor.GetProperty()
+    eprop.LightingOff()
+
+    eprop.SetEdgeColor([1,0,1])
+    eprop.SetColor([1,0,1])
+    eprop.SetRepresentationToWireframe()
+    eprop.SetOpacity(1)
+
+    print(ugrid2)
+
+    ren.RemoveAllViewProps()
+    ren.AddActor(eactor)
+
+
     nmapper = vtk.vtkDataSetMapper()
     nmapper.SetInputConnection(cpd.GetOutputPort())
     # nmapper.SetScalarModeToUsePointFieldData()
@@ -394,7 +493,6 @@ def getstep(e):
     nActor.SetMapper( nmapper )
     vprop = nActor.GetProperty()
     # vprop.LightingOff()
-    ren.RemoveAllViewProps()
     ren.AddActor(nActor)
 
     ren.ResetCamera()
