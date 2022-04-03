@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 #TODO
-#tworzenie nowego vml
-#załączone pliki?
-# powrót do rozmiaru po screenshocie
+#plik vtk z step, bez łuków
+#orientacja z plików  vtk
 #
 #IMPORTY
 import wx
