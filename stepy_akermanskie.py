@@ -268,7 +268,7 @@ def getstep(e):
         nazwa = "E:/GIT/DOKTORAT/F4150-151-002.stp"
         nazwa = "E:/GIT/DOKTORAT/F4100-001-001.stp"
         nazwa = "E:/GIT/DOKTORAT/ASSES/F4100-001-001.stp"
-        nazwa = "E:/GIT/DOKTORAT/STEPY/IPE 160 - 1211.stp"
+        nazwa = "E:/GIT/DOKTORAT/STEPY/dwuteownik_00058.stp"
         print(os.path.exists(nazwa))
 
     # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
