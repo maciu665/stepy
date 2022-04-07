@@ -2,6 +2,7 @@
 import vtk								#to trzeba doinstalowac, "pip install vtk"
 import sys
 import os
+import math
 from stl_render_fun import *
 from PIL import Image
 
@@ -13,12 +14,19 @@ ifolder = "E:/GIT/DOKTORAT/STL_IMAGES"		#folder z obrazkami
 
 resolution = 540,540			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
-surface = True					#czy wyswietlac powierzchnie
+surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
-edges = True					#czy wyswietlac krawedzie
+edges = 1						#czy wyswietlac krawedzie
 ecolor = 1,1,1					#kolor krawedzi
 ethickness = 2					#grubosc krawedzi
 
+campos = 1,1,1					#pozycja kamery
+camper = 0						#0-perspektywa, 1-rzutowanie rownolegle
+noshading = 0					#wylaczenie cieniowania
+
+merge = 1						#czy skleic pliki w jeden duzy
+
+################################################################################
 
 lista = os.listdir(cfolder)		#lista plikow
 #print(lista)
@@ -26,7 +34,7 @@ lista = os.listdir(cfolder)		#lista plikow
 
 #fname = "dwuteownik_00083.stl"
 
-def wrender(im,imname="koza",killit=0):
+def wrender(im,imfile,killit=0):
 	if im:
 		win.Render()
 
@@ -35,7 +43,7 @@ def wrender(im,imname="koza",killit=0):
 		w2if.Update()
 
 		iw = vtk.vtkPNGWriter()
-		iw.SetFileName(os.path.join(ifolder,"%s.png"%imname))
+		iw.SetFileName(imfile)
 		iw.SetInputData(w2if.GetOutput())
 		iw.Write()
 		if killit:
@@ -47,43 +55,15 @@ def wrender(im,imname="koza",killit=0):
 		iren.Initialize()
 		iren.Start()
 		win.Render()
-# sys.exit()
-
-'''
-tex = vtk.vtkTexture()
-ireader = vtk.vtkImageReader2()
-ireader.SetFileName("E:/GIT/DOKTORAT/cloud_layers_4k.jpg")
-ireader.Update()
-tex.SetInputConnection(ireader.GetOutputPort())
-
-
-hreader = vtk.vtkHDRReader()
-hreader.SetFileName("E:/GIT/DOKTORAT/red_hill_curve_4k.hdr")
-hreader.SetFileName("E:/GIT/DOKTORAT/cloud_layers_4k.hdr")
-tex.SetColorModeToDirectScalars()
-tex.SetInputConnection(hreader.GetOutputPort())
-'''
-
 
 im = 1
 
-
-
 ren = vtk.vtkRenderer()
-#win = vtk.vtkRenderWindow()
 win = vtkwin()
 win.AddRenderer(ren)
 ren.GradientBackgroundOff()
 win.SetSize(resolution)
 ren.SetBackground(bgcolor)
-
-iren = vtk.vtkRenderWindowInteractor()
-iren.SetRenderWindow(win)
-iren.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-
-# win.widget.SetEnabled(1)
-# win.widget.InteractiveOff()
-
 
 if im:
 	win.OffScreenRenderingOn()
@@ -123,6 +103,8 @@ edges3.Update()
 
 vprop = vtk.vtkProperty()
 vprop.LightingOn()
+if noshading:
+	vprop.LightingOff()
 vprop.SetColor(scolor)
 vprop.SetSpecular(0)
 vprop.SetSpecularPower(100)
@@ -148,11 +130,11 @@ eprop.SetOpacity(1)
 
 ########################################################################
 camera = ren.GetActiveCamera()
-camera.SetPosition(1000,1000,1000)
+camera.SetPosition(campos)
 camera.SetViewUp(0,0,1)
 camera.SetFocalPoint(0,0,0)
 camera.SetParallelScale(1)
-camera.SetParallelProjection(0)
+camera.SetParallelProjection(camper)
 
 ########################################################################	LIGHT
 
@@ -187,34 +169,82 @@ if edges:
 if surface:
 	ren.AddActor2D(pactor)
 ren.ResetCamera()
-ren.ResetCamera()
 
-#for fname in lista[2]:
+for plik in lista[:8]:
 
-imname = "image"
+	#plik = lista[1]
 
-wrender(1,"image1")
+	typ = plik.rsplit("_")[0]
+	klasa = os.path.join(ifolder,typ)
+	if os.path.exists(klasa) == 0:
+		os.mkdir(klasa)
 
-wrender(1,"image2")
+	imagename = os.path.join(klasa,plik.replace(".stl",".png"))
+	print(imagename)
+
+	imagename1 = imagename.replace(".png","-view01.png")
+	imagename2 = imagename.replace(".png","-view02.png")
+	imagename3 = imagename.replace(".png","-view03.png")
+	imagename4 = imagename.replace(".png","-view04.png")
+	print(typ)
+
+	################################################################################		RENDEROWANIE
 
 
-wrender(1,"image3")
+	campos = 1,1,1
+	stlr.SetFileName(os.path.join(cfolder,plik))
+	stlr.Update()
 
-wrender(1,"image4")
+	ren.ResetCamera()
+	print(camera.GetPosition())
+	print(camera.GetFocalPoint())
+	ccampos = camera.GetPosition()
+	ccamfoc = camera.GetFocalPoint()
+	camdis = math.sqrt(math.pow(ccampos[0]-ccamfoc[0],2)+math.pow(ccampos[1]-ccamfoc[1],2)+math.pow(ccampos[2]-ccamfoc[2],2))/math.sqrt(2)
+	camera = ren.GetActiveCamera()
+	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
+	ren.ResetCameraClippingRange()
+	wrender(1,imagename1)
+
+	campos = 1,-1,1
+	camera = ren.GetActiveCamera()
+	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
+	ren.ResetCameraClippingRange()
+	wrender(1,imagename2)
 
 
+	campos = -1,-1,1
+	camera = ren.GetActiveCamera()
+	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
+	ren.ResetCameraClippingRange()
+	wrender(1,imagename3)
 
-image1 = Image.open(os.path.join(ifolder,"image1.png"))
-image2 = Image.open(os.path.join(ifolder,"image2.png"))
-image3 = Image.open(os.path.join(ifolder,"image3.png"))
-image4 = Image.open(os.path.join(ifolder,"image4.png"))
-#resize, first image
-# image1 = image1.resize((1080, 1080))
-image1_size = image1.size
-image2_size = image2.size
-new_image = Image.new('RGB',(1080,1080), (250,250,250))
-new_image.paste(image1,(0,0))
-new_image.paste(image2,(image1.size[0],0))
-new_image.paste(image3,(0,image1.size[1]))
-new_image.paste(image4,(image1.size[0],image1.size[1]))
-new_image.save(os.path.join(ifolder,"%s"%(fname.replace(".stl",".png"))),"PNG")
+
+	campos = -1,1,1
+	camera = ren.GetActiveCamera()
+	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
+	ren.ResetCameraClippingRange()
+	wrender(1,imagename4)
+
+
+	if merge:
+
+
+		image1 = Image.open(imagename1)
+		image2 = Image.open(imagename2)
+		image3 = Image.open(imagename3)
+		image4 = Image.open(imagename4)
+		#resize, first image
+		# image1 = image1.resize((1080, 1080))
+		image1_size = image1.size
+		new_image = Image.new('RGB',(image1_size[0]*2,image1_size[1]*2), (250,250,250))
+		new_image.paste(image1,(0,0))
+		new_image.paste(image2,(image1.size[0],0))
+		new_image.paste(image3,(0,image1.size[1]))
+		new_image.paste(image4,(image1.size[0],image1.size[1]))
+		new_image.save(imagename,"PNG")
+
+		os.remove(imagename1)
+		os.remove(imagename2)
+		os.remove(imagename3)
+		os.remove(imagename4)
