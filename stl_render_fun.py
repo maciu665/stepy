@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 import vtk
 import sys
-import numpy as np
 import os
-from vtk.util.numpy_support import numpy_to_vtk
 
-from xml.dom.minidom import *
 
 def setcam(camera,camset):
 	camera.SetPosition(camset["cpos"][0],camset["cpos"][1],camset["cpos"][2])
