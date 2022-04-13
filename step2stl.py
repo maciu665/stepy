@@ -27,6 +27,8 @@ from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.GeomAbs import GeomAbs_Plane, GeomAbs_Cylinder
 from OCC.Core.TopoDS import topods_Face,TopoDS_Iterator
 from OCC.Core.GCPnts import GCPnts_AbscissaPoint, GCPnts_UniformAbscissa
+from OCC.Core.GProp import GProp_GProps
+from scipy.spatial import ConvexHull
 # from OCC.Core import BRepAdaptor
 # print(dir(BRepAdaptor))
 from OCC.Core.BRep import BRep_Tool, BRep_Tool_Pnt, BRep_Tool_IsGeometric, BRep_Tool_Parameter, BRep_Tool_Curve
@@ -40,6 +42,7 @@ from mywxDisplay import wxBaseViewer,wxViewer3d
 from OCC.Extend.TopologyUtils import TopologyExplorer
 
 from OCCUtils.edge import Edge
+from OCC.Core.BRepGProp import brepgprop_VolumeProperties
 
 from OCC.Core.BRep import BRep_Builder, BRep_Tool
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeSphere
@@ -85,6 +88,14 @@ for s in steplista:
         else:
             print("Error: can't read file.")
             sys.exit(0)
+
+        gprops = GProp_GProps()
+        brepgprop_VolumeProperties(shp, gprops)
+        volume = gprops.Mass()
+        com = gprops.CentreOfMass()
+        # print(dir(gprops))
+        print(volume,com)
+        # sys.exit()
 
 
         #shp = read_step_file("E:/GIT/DOKTORAT/all_together.step")
@@ -186,11 +197,66 @@ for s in steplista:
 
         print("POINTS",cpd.GetOutput().GetNumberOfPoints())
 
+        bnds = cpd.GetOutput().GetBounds()
+        cob = [(bnds[0]+bnds[1])/2,(bnds[2]+bnds[3])/2,(bnds[4]+bnds[5])/2]
+
+        print(bnds,cob)
+
+        transowanie = vtk.vtkTransformFilter()
+        trans = vtk.vtkTransform()
+        trans.Translate(-cob[0], -cob[1], -cob[2])
+        transowanie.SetTransform(trans)
+        transowanie.SetInputConnection(cpd.GetOutputPort())
+        transowanie.Update()
+        tbnds = transowanie.GetOutput().GetBounds()
+        print(tbnds)
+
+        print(com.X(),com.Y(),com.Z())
+
+        tcom = [com.X()-cob[0],com.Y()-cob[1],com.Z()-cob[2]]
+        print(tcom)
+
+        points = []
+
+        for tp in range(transowanie.GetOutput().GetNumberOfPoints()):
+            points.append(list(transowanie.GetOutput().GetPoint(tp)))
+
+        hull = ConvexHull(points)
+        print(hull)
+
+        hugrid = vtk.vtkUnstructuredGrid()
+        hugrid.SetPoints(transowanie.GetOutput().GetPoints())
+
+        for simplex in hull.simplices:
+            # print(simplex)
+            pointIds = vtk.vtkIdList()
+            pointIds.InsertId(0, simplex[0])
+            pointIds.InsertId(1, simplex[1])
+            pointIds.InsertId(2, simplex[2])
+            seid = hugrid.InsertNextCell(5, pointIds)
+
+        hgf = vtk.vtkGeometryFilter()
+        hgf.SetInputData(hugrid)
+        hgf.Update()
+
+        hcpd = vtk.vtkCleanPolyData()
+        hcpd.SetInputData(hgf.GetOutput())
+        hcpd.Update()
+
         stlw = vtk.vtkSTLWriter()
-        stlw.SetInputConnection(cpd.GetOutputPort())
+        stlw.SetInputConnection(transowanie.GetOutputPort())
         stlw.SetFileTypeToBinary()
         stlw.SetFileName(nazwa.replace(".stp",".stl").replace("STEPY","STL"))
         stlw.Update()
+
+        hulw = vtk.vtkSTLWriter()
+        hulw.SetInputConnection(hcpd.GetOutputPort())
+        hulw.SetFileTypeToBinary()
+        hulw.SetFileName(nazwa.replace(".stp","-hull.stl").replace("STEPY","STL"))
+        hulw.Update()
+
+
+    # sys.exit()
     except:
         failist += "%s\n"%nazwa
 
