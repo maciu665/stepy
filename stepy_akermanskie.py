@@ -10,6 +10,7 @@ import vtk
 import builtins
 import os
 import sys
+import numpy as np
 # from vtk.util.colors import *
 import gzip, zipfile
 from vtkfun import *
@@ -20,12 +21,17 @@ import time
 import vtkmodules
 import vtkmodules.all
 from step_fun import *
+from scipy.spatial.transform import Rotation
 
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.GeomAbs import GeomAbs_Plane, GeomAbs_Cylinder
 from OCC.Core.TopoDS import topods_Face,TopoDS_Iterator,TopoDS_ListOfShape
 from OCC.Core.GCPnts import GCPnts_AbscissaPoint, GCPnts_UniformAbscissa
+
+
+from OCC.Core.GProp import GProp_GProps
+from OCC.Core.BRepGProp import brepgprop_SurfaceProperties
 # from OCC.Core import BRepAdaptor
 # print(dir(BRepAdaptor))
 from OCC.Core.BRep import BRep_Tool, BRep_Tool_Pnt, BRep_Tool_IsGeometric, BRep_Tool_Parameter, BRep_Tool_Curve
@@ -269,6 +275,7 @@ def getstep(e):
         nazwa = "E:/GIT/DOKTORAT/F4100-001-001.stp"
         nazwa = "E:/GIT/DOKTORAT/ASSES/F4100-001-001.stp"
         nazwa = "E:/GIT/DOKTORAT/STEPY/dwuteownik_00058.stp"
+        nazwa = "E:/GIT/DOKTORAT/STEPY/dwuteownik_00067.stp"
         print(os.path.exists(nazwa))
 
     # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
@@ -295,6 +302,9 @@ def getstep(e):
     allpoints = []
     sedges = []
 
+    maxarea = 0
+    maxfacedir = None
+
     print("NBCHILDREN",shp.NbChildren(),shtypes[shp.ShapeType()])
     tsldi = TopoDS_Iterator(shp)
     tsldi.Initialize(shp)
@@ -312,6 +322,27 @@ def getstep(e):
             print(ttshp.ShapeType(),shtypes[ttshp.ShapeType()])
             tfaci = TopoDS_Iterator(ttshp)
             tfaci.Initialize(ttshp)
+
+            surf = BRepAdaptor_Surface(topods_Face(ttshp), True)
+            stypetxt = surf_type2text(surf.GetType())
+            '''
+            print(stypetxt)
+            print(dir(surf))
+            print(surf.Plane())
+            print(dir(surf.Plane()))
+            print(surf.Plane().Axis())
+            '''
+            if stypetxt == "Plane":
+                pldir = surf.Plane().Axis().Direction()
+
+                gprops = GProp_GProps()
+                brepgprop_SurfaceProperties(ttshp, gprops)
+                area = gprops.Mass()
+                print(area)
+                if area > maxarea:
+                    maxarea = area
+                    maxfacedir = [pldir.X(),pldir.Y(),pldir.Z()]
+
             while tfaci.More():
                 tttshp = tfaci.Value()
                 print(tttshp.NbChildren())
@@ -383,7 +414,8 @@ def getstep(e):
     ugrid2 = vtk.vtkUnstructuredGrid()
 
 
-
+    evdirs = []
+    evlens = []
 
     for k in range(int(len(allpoints)/2)):
         ti1 = pts2.InsertNextPoint(allpoints[k*2])
@@ -392,8 +424,70 @@ def getstep(e):
         pointIds.InsertId(0, ti1)
         pointIds.InsertId(1, ti2)
         seid = ugrid2.InsertNextCell(3, pointIds)
+        np0 = np.array(allpoints[k*2])
+        np1 = np.array(allpoints[k*2+1])
+        pvector = np1-np0
+        plen = np.linalg.norm(pvector)
+        pdir = list(pvector/plen)
+        pdir = [round(pdir[0],6),round(pdir[1],6),round(pdir[2],6)]
+        print("pvector", pvector, np1, np0, plen, pdir)
+        if list(pdir) in evdirs:
+            evlens[evdirs.index(list(pdir))] += plen
+            print("index",evdirs.index(list(pdir)))
+        elif list(pdir*-1) in evdirs:
+            evlens[evdirs.index(list(pdir*-1))] += plen
+        else:
+            evdirs.append(list(pdir))
+            print("append",plen, pdir)
+            evlens.append(plen)
+
+    print("evlens",evlens)
+    print(evdirs)
+
+    ldir = evdirs[evlens.index(max(evlens))]
+    print(ldir)
+    print(maxfacedir)
+
+    tzdir = np.array(maxfacedir)
+    zdir = np.array([0,0,1])
+    print(list(tzdir) == list(zdir))
+    print(list(tzdir) == list(zdir*-1))
+
+    rot2z = [None]
+    rldir = None
+
+    if list(tzdir) != list(zdir*-1) and list(tzdir) != list(zdir):
+        print("ROTATE TO Z")
+        print(np.cross(zdir,tzdir))
+        print(np.dot(zdir,tzdir))
+        kros = np.cross(zdir,tzdir)
+        tkros1 = kros/np.linalg.norm(kros)
+        print(tkros1)
+
+        angle = np.arccos(np.dot(zdir,tzdir))
+        print(angle,np.degrees(angle),np.linalg.norm(np.cross(zdir,tzdir)))
+        tkros = tkros1*np.degrees(angle)
+        print(tkros)
+
+        rot = Rotation.from_rotvec(tkros,True)
+        rot2z = rot.as_euler('XYZ',True)
+        print(rot2z)
+
+        rldir = rot.apply(ldir,True)
+        print(ldir,rldir)
+        # sys.exit()
+
     ugrid2.SetPoints(pts2)
 
+    if rot2z[0] != None:
+        transowanie = vtk.vtkTransformFilter()
+        trans = vtk.vtkTransform()
+        # trans.Translate(-cob[0], -cob[1], -cob[2])
+        trans.RotateWXYZ(np.degrees(angle),tkros1[0],tkros1[1],tkros1[2])
+        transowanie.SetTransform(trans)
+        transowanie.SetInputData(ugrid2)
+        transowanie.Update()
+        ugrid2 = transowanie.GetOutput()
 
 
     while ex.More():
@@ -478,7 +572,7 @@ def getstep(e):
     eprop.SetRepresentationToWireframe()
     eprop.SetOpacity(1)
 
-    print(ugrid2)
+    # print(ugrid2)
 
     ren.RemoveAllViewProps()
     ren.AddActor(eactor)

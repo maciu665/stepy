@@ -9,8 +9,8 @@ from PIL import Image
 #import vtkOSPRayPass
 
 
-cfolder = "E:/GIT/DOKTORAT/STL"		#folder z plikami stl
-ifolder = "E:/GIT/DOKTORAT/STL_IMAGES"		#folder z obrazkami
+cfolder = "E:/GIT/DOKTORAT/STL_ORIENT"		#folder z plikami stl
+ifolder = "E:/GIT/DOKTORAT/STL_IMAGES_ORIENT"		#folder z obrazkami
 
 resolution = 540,540			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
@@ -170,7 +170,7 @@ if surface:
 	ren.AddActor2D(pactor)
 ren.ResetCamera()
 
-for plik in lista[:8]:
+for plik in lista[:]:
 
 	#plik = lista[1]
 
@@ -205,7 +205,7 @@ for plik in lista[:8]:
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
 	ren.ResetCameraClippingRange()
 	wrender(1,imagename1)
-
+	'''
 	campos = 1,-1,1
 	camera = ren.GetActiveCamera()
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
@@ -248,3 +248,4 @@ for plik in lista[:8]:
 		os.remove(imagename2)
 		os.remove(imagename3)
 		os.remove(imagename4)
+	'''
