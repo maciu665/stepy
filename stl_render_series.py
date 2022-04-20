@@ -23,6 +23,9 @@ ethickness = 2					#grubosc krawedzi
 campos = 1,1,1					#pozycja kamery
 camper = 0						#0-perspektywa, 1-rzutowanie rownolegle
 noshading = 0					#wylaczenie cieniowania
+cam_angle = 1					#pozycja kamery z kątów
+azimuth = 45					#azymut kamery
+elevation = 30					#wznios kamery
 
 merge = 1						#czy skleic pliki w jeden duzy
 
@@ -170,7 +173,7 @@ if surface:
 	ren.AddActor2D(pactor)
 ren.ResetCamera()
 
-for plik in lista[:]:
+for plik in lista[:1]:
 
 	#plik = lista[1]
 
@@ -190,8 +193,11 @@ for plik in lista[:]:
 
 	################################################################################		RENDEROWANIE
 
+	#azimuth = 45
+	#elevation = 30
+	if cam_angle:
+		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
 
-	campos = 1,1,1
 	stlr.SetFileName(os.path.join(cfolder,plik))
 	stlr.Update()
 
