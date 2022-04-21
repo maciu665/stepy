@@ -173,7 +173,7 @@ if surface:
 	ren.AddActor2D(pactor)
 ren.ResetCamera()
 
-for plik in lista[:1]:
+for plik in lista[:]:
 
 	#plik = lista[1]
 
@@ -211,8 +211,12 @@ for plik in lista[:1]:
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
 	ren.ResetCameraClippingRange()
 	wrender(1,imagename1)
-	'''
+
 	campos = 1,-1,1
+	azimuth = -45
+	elevation = 30
+	if cam_angle:
+		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
 	camera = ren.GetActiveCamera()
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
 	ren.ResetCameraClippingRange()
@@ -220,6 +224,10 @@ for plik in lista[:1]:
 
 
 	campos = -1,-1,1
+	azimuth = 135
+	elevation = 30
+	if cam_angle:
+		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
 	camera = ren.GetActiveCamera()
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
 	ren.ResetCameraClippingRange()
@@ -227,6 +235,10 @@ for plik in lista[:1]:
 
 
 	campos = -1,1,1
+	azimuth = -135
+	elevation = 30
+	if cam_angle:
+		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
 	camera = ren.GetActiveCamera()
 	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
 	ren.ResetCameraClippingRange()
@@ -254,4 +266,3 @@ for plik in lista[:1]:
 		os.remove(imagename2)
 		os.remove(imagename3)
 		os.remove(imagename4)
-	'''
