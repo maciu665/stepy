@@ -9,16 +9,19 @@ from PIL import Image
 #import vtkOSPRayPass
 
 
-cfolder = "E:/GIT/DOKTORAT/STL_ORIENT"		#folder z plikami stl
-ifolder = "E:/GIT/DOKTORAT/STL_IMAGES_ORIENT"		#folder z obrazkami
+cfolder = "E:/GIT/DOKTORAT/STL_ORIENT2"		#folder z plikami stl
+ifolder1 = "E:/GIT/DOKTORAT/STL_IMAGES_SW"		#folder z obrazkami
+ifolder2 = "E:/GIT/DOKTORAT/STL_IMAGES_SB"		#folder z obrazkami
+ifolder3 = "E:/GIT/DOKTORAT/STL_IMAGES_WW"		#folder z obrazkami
+ifolder4 = "E:/GIT/DOKTORAT/STL_IMAGES_WB"		#folder z obrazkami
 
-resolution = 540,540			#rodzielczosc
+resolution = 299,299			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
 surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
 edges = 1						#czy wyswietlac krawedzie
 ecolor = 1,1,1					#kolor krawedzi
-ethickness = 2					#grubosc krawedzi
+ethickness = 1					#grubosc krawedzi
 
 campos = 1,1,1					#pozycja kamery
 camper = 0						#0-perspektywa, 1-rzutowanie rownolegle
@@ -32,10 +35,32 @@ merge = 1						#czy skleic pliki w jeden duzy
 ################################################################################
 
 lista = os.listdir(cfolder)		#lista plikow
-#print(lista)
-#sys.exit()
+print(lista)
+lista.sort()
 
-#fname = "dwuteownik_00083.stl"
+profile = [[],[],[],[]]
+for i in lista:
+	if "ceownik" in i:
+		profile[0].append(i)
+	elif "dwuteownik" in i:
+		profile[1].append(i)
+	elif "katownik" in i:
+		profile[2].append(i)
+	elif "plaskownik" in i:
+		profile[3].append(i)
+
+#print(profile[2])
+#print(profile[3])
+print(len(profile[0]),len(profile[1]),len(profile[2]),len(profile[3]))
+# sys.exit()
+f = open("E:/GIT/DOKTORAT/camera2.txt","r")
+linie = f.read().splitlines()
+f.close()
+
+print(len(linie))
+# sys.exit()
+
+
 
 def wrender(im,imfile,killit=0):
 	if im:
@@ -79,13 +104,11 @@ else:
 
 ######################################################################################################################
 
-
-
 stlr = vtk.vtkSTLReader()
 stlr.SetFileName(os.path.join(cfolder,lista[0]))
 stlr.Update()
 stl = stlr.GetOutput()
-print(stl)
+
 #sys.exit()
 mapper = vtk.vtkPolyDataMapper()
 mapper.SetInputData(stl)
@@ -168,15 +191,26 @@ lightKit.MaintainLuminanceOn()
 lightKit.AddLightsToRenderer(ren)
 
 if edges:
-	ren.AddActor2D(eactor)
+	ren.AddActor(eactor)
 if surface:
-	ren.AddActor2D(pactor)
+	ren.AddActor(pactor)
 ren.ResetCamera()
 
-for plik in lista[:]:
+lastfile = lista[0]
 
-	#plik = lista[1]
+for l in range(len(linie[:])):
+	linia = linie[l].split("_")
+	print(linia)
 
+	plik = profile[int(linia[1])][int(linia[0])]
+	print(plik)
+	coords = linia[5].split("(")[1].split(")")[0]
+	print(coords)
+	cx = float(coords.split(", ")[0])
+	cy = float(coords.split(", ")[1])
+	cz = float(coords.split(", ")[2])
+
+	'''
 	typ = plik.rsplit("_")[0]
 	klasa = os.path.join(ifolder,typ)
 	if os.path.exists(klasa) == 0:
@@ -190,79 +224,101 @@ for plik in lista[:]:
 	imagename3 = imagename.replace(".png","-view03.png")
 	imagename4 = imagename.replace(".png","-view04.png")
 	print(typ)
+	'''
 
 	################################################################################		RENDEROWANIE
+	azimuth = float(linia[3])
+	elevation = float(linia[4])
+	x = math.sin(math.radians(azimuth))*math.cos(math.radians(elevation))
+	y = math.cos(math.radians(azimuth))*math.cos(math.radians(elevation))
+	z = math.sin(math.radians(elevation))
+	vector = [x,y,z]
+	print(vector)
+	imname = plik.replace(".stl","")+"-view%s.png"%(str(int(linia[2])+1).zfill(2))
+	imfile = os.path.join(ifolder1,imname)
+	print(plik, imname)
+	print(imfile)
 
-	#azimuth = 45
-	#elevation = 30
-	if cam_angle:
-		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
+	campos = cx*1000,cy*1000,cz*1000
+	camfoc = (cx-y)*1000,(cy-x)*1000,(cz-z)*1000
+	camera.SetPosition(campos)
+	camera.SetFocalPoint(camfoc)
+	#camera.SetFocalPoint(0,0,0)
+	camera.SetViewUp(0,0,1)
 
-	stlr.SetFileName(os.path.join(cfolder,plik))
-	stlr.Update()
+	cangle = 39.5978
+	if lastfile != plik:
+		stlr.SetFileName(os.path.join(cfolder,plik))
+		stlr.Update()
+		stl = stlr.GetOutput()
 
-	ren.ResetCamera()
-	print(camera.GetPosition())
-	print(camera.GetFocalPoint())
-	ccampos = camera.GetPosition()
-	ccamfoc = camera.GetFocalPoint()
-	camdis = math.sqrt(math.pow(ccampos[0]-ccamfoc[0],2)+math.pow(ccampos[1]-ccamfoc[1],2)+math.pow(ccampos[2]-ccamfoc[2],2))/math.sqrt(2)
-	camera = ren.GetActiveCamera()
-	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
+		spb = stl.GetBounds()
+		#print(spb)
+		maxdim = max(spb[3]-spb[2],spb[5]-spb[4])
+		#print(maxdim,4*maxdim)
+		#print(spb[1] > (2*maxdim))
+		if spb[1] > (2*maxdim):
+			tx = (2*maxdim) - spb[1]
+		else:
+			tx = 0
+		#print("tx",tx)
+
+		transowanie = vtk.vtkTransformFilter()
+		trans = vtk.vtkTransform()
+		# trans.Scale(1, -1, 1)
+		trans.Translate(tx,0,spb[4]*-1)
+		transowanie.SetTransform(trans)
+		transowanie.SetInputData(stl)
+		transowanie.Update()
+		stl = transowanie.GetOutput()
+
+		mapper.SetInputData(stl)
+
+		edges3.SetInputData(stl)
+		edges3.Update()
+
+
+		lastfile = plik
+
+	#print(camera.GetPosition())
+	#print(camera.GetFocalPoint())
+	#print(camera.GetClippingRange())
+	camera.SetViewAngle(cangle)
+	#ren.ResetCamera()
+	# print(camera.GetPosition())
 	ren.ResetCameraClippingRange()
-	wrender(1,imagename1)
 
-	campos = 1,-1,1
-	azimuth = -45
-	elevation = 30
-	if cam_angle:
-		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
-	camera = ren.GetActiveCamera()
-	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
-	ren.ResetCameraClippingRange()
-	wrender(1,imagename2)
+	try:
+		ren.RemoveActor(pactor)
+		ren.RemoveActor(eactor)
+	except:
+		pass
 
+	ren.AddActor(pactor)
+	ren.SetBackground(1,1,1)
+	wrender(1,imfile)
+	ren.SetBackground(0,0,0)
+	imfile = os.path.join(ifolder2,imname)
+	wrender(1,imfile)
 
-	campos = -1,-1,1
-	azimuth = 135
-	elevation = 30
-	if cam_angle:
-		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
-	camera = ren.GetActiveCamera()
-	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
-	ren.ResetCameraClippingRange()
-	wrender(1,imagename3)
+	ren.RemoveActor(pactor)
+	ren.AddActor(eactor)
+	ren.SetBackground(1,1,1)
+	eprop.SetEdgeColor(0,0,0)
+	eprop.SetColor(0,0,0)
 
+	imfile = os.path.join(ifolder3,imname)
+	wrender(1,imfile)
 
-	campos = -1,1,1
-	azimuth = -135
-	elevation = 30
-	if cam_angle:
-		campos = math.sqrt(2)*math.cos(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(azimuth)),math.sqrt(2)*math.sin(math.radians(elevation))
-	camera = ren.GetActiveCamera()
-	camera.SetPosition(ccamfoc[0]+campos[0]*camdis,ccamfoc[1]+campos[1]*camdis,ccamfoc[2]+campos[2]*camdis)
-	ren.ResetCameraClippingRange()
-	wrender(1,imagename4)
+	ren.SetBackground(0,0,0)
+	eprop.SetEdgeColor(1,1,1)
+	eprop.SetColor(1,1,1)
+	imfile = os.path.join(ifolder4,imname)
+	wrender(1,imfile)
 
 
-	if merge:
-
-
-		image1 = Image.open(imagename1)
-		image2 = Image.open(imagename2)
-		image3 = Image.open(imagename3)
-		image4 = Image.open(imagename4)
-		#resize, first image
-		# image1 = image1.resize((1080, 1080))
-		image1_size = image1.size
-		new_image = Image.new('RGB',(image1_size[0]*2,image1_size[1]*2), (250,250,250))
-		new_image.paste(image1,(0,0))
-		new_image.paste(image2,(image1.size[0],0))
-		new_image.paste(image3,(0,image1.size[1]))
-		new_image.paste(image4,(image1.size[0],image1.size[1]))
-		new_image.save(imagename,"PNG")
-
-		os.remove(imagename1)
-		os.remove(imagename2)
-		os.remove(imagename3)
-		os.remove(imagename4)
+#
+#ifolder1 = "E:/GIT/DOKTORAT/STL_IMAGES_SW"		#folder z obrazkami
+#ifolder2 = "E:/GIT/DOKTORAT/STL_IMAGES_SB"		#folder z obrazkami
+#ifolder3 = "E:/GIT/DOKTORAT/STL_IMAGES_WW"		#folder z obrazkami
+#ifolder4 = "E:/GIT/DOKTORAT/STL_IMAGES_WB"
