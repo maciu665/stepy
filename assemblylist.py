@@ -1,13 +1,8 @@
+
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
-#TODO
-#tworzenie nowego vml
-#załączone pliki?
-# powrót do rozmiaru po screenshocie
 #
 #IMPORTY
-import wx
-#import vtk
 import builtins
 import os
 import sys
@@ -34,7 +29,7 @@ from OCC.Core.BRep import BRep_Tool, BRep_Tool_Pnt, BRep_Tool_IsGeometric, BRep_
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface,BRepAdaptor_Curve
 from OCC.Display.SimpleGui import init_display
 #from OCC.Display.wxDisplay import wxBaseViewer
-from mywxDisplay import wxBaseViewer,wxViewer3d
+#from mywxDisplay import wxBaseViewer,wxViewer3d
 #from OCC.Core.BRepool import Curve
 
 from OCC.Extend.TopologyUtils import TopologyExplorer
@@ -63,84 +58,6 @@ from OCCUtils.edge import Edge
 
 softname = "STEPY"
 global shp
-
-actors = []
-
-#APLIKACJA
-aplikacja=wx.App(False)
-
-################################################################################################################
-
-root=wx.Frame(None, -1, softname, wx.Point(0,0), wx.Size(1100, 1000))
-# root.SetIcon(wx.Icon('kon.ico', wx.BITMAP_TYPE_ICO))
-root.Centre()
-#builtins.statusbar = root.CreateStatusBar()
-#builtins.statusbar.SetStatusText('')
-
-menubar = wx.MenuBar()
-menuplik = wx.Menu()
-#
-menubar.Append(menuplik, '&Plik')
-##
-mopenvtk = wx.MenuItem(menuplik,3001, '&Otwórz .stp\tCtrl+O', "Otwiera plik *.stp")
-menuplik.Append(mopenvtk)
-
-menuplik.AppendSeparator()
-pquit = wx.MenuItem(menuplik, 3003, '&Zakończ\tCtrl+Q', "Zakończ")
-#pquit.SetBitmap(wx.Image('../gf/exit_16.png',wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-menuplik.Append(pquit)
-#
-menuview = wx.Menu()
-menubar.Append(menuview, "&Widok")
-root.SetMenuBar(menubar)
-
-################################################################################################################
-
-mbox = wx.GridBagSizer(5,0)
-sbox = wx.GridBagSizer(5,5)
-#rbox = wx.GridBagSizer(0,0)
-
-stepwin = wxViewer3d(root)
-print(stepwin)
-print(dir(stepwin))
-stepwin.InitDriver()
-display = stepwin._display
-print(display)
-# sys.exit()
-
-#displayvtk = vtkwin(root, -1, actors)
-#displayvtk.Enable(1)
-#displayvtk.AddObserver("ExitEvent", lambda o,e,f=root: f.Close())
-#ren = vtk.vtkRenderer()
-#displayvtk.GetRenderWindow().AddRenderer(ren)
-
-ntree = CT.CustomTreeCtrl(root, 665, size=(300,700), style=wx.SUNKEN_BORDER, agwStyle=CT.TR_HAS_BUTTONS | CT.TR_HAS_VARIABLE_ROW_HEIGHT)
-
-#rpanel = wx.Panel(root,size=(50,100))
-
-details = wx.TextCtrl(root, -1, "", size=(200, 150), style = wx.TE_MULTILINE)
-details.SetEditable(False)
-details.SetToolTip(wx.ToolTip("Szczegóły"))
-
-sbox.Add(ntree,(0,0),(1,2),wx.EXPAND,4 )
-sbox.Add(details,(1,0),(1,2),wx.EXPAND,4 )
-sbox.AddGrowableRow(0)
-
-mbox.Add(sbox,(0,0),(1,1),wx.EXPAND,4 )
-mbox.Add(stepwin,(0,1),(1,1),wx.EXPAND,4 )
-#mbox.Add(displayvtk,(0,2),(1,1),wx.EXPAND,4 )
-#mbox.Add(rpanel,(0,3),(1,1),wx.EXPAND,4 )
-
-#rpanel.Show(False)
-
-mbox.AddGrowableRow(0)
-#rbox.AddGrowableRow(1)
-mbox.AddGrowableCol(1)
-sbox.AddGrowableCol(0)
-
-root.SetSizerAndFit(mbox)
-root.Maximize(True)
-root.Refresh()
 
 class ExportCAFMethod (object):
 
@@ -241,7 +158,7 @@ def read_step_file_with_names_colors(filename):
         # print("Nb components  :", l_comps.Length())
         # print()
         name = lab.GetLabelName()
-        print("Name :", name)
+        print("Name sub :", name)
         if name == "":
             "!\n!\n!\n!"
 
@@ -515,19 +432,27 @@ def getstep(e):
         nazwa = "E:/GIT/DOKTORAT/F4150-151-002.stp"
         nazwa = "E:/GIT/DOKTORAT/F4100-001-001.stp"
         nazwa = "E:/GIT/DOKTORAT/ASSES/F4100-001-001.stp"
-        nazwa = "E:/GIT/DOKTORAT/ASSES/K4500-001-001.stp"
+        nazwa = "/home/maciejm/GIT/STEPY/23_Luftsysteme_2022-08-12.stp"
+        nazwa = "/home/maciejm/GIT/STEPY/ASSES/F4100-001-001.stp"
+        nazwa = "/home/maciejm/GIT/STEPY/ASSES/F4150-151-002.stp"
+
         print(os.path.exists(nazwa))
     # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
     # shp = get_step_file(nazwa)
     shp = read_step_file_with_names_colors(nazwa)
+    
     #shp = read_step_file("E:/GIT/DOKTORAT/all_together.step")
     print(shp)
-    print(dir(shp))
+    #print(dir(shp))
+    
+    
 
-    f = open(nazwa,"r")
-    stp = f.read().splitlines()
+    f = open(nazwa,"r",encoding = "iso-8859-15")
+    stp = f.read()
+    stp = stp.splitlines()
     f.close()
     print(len(stp))
+    sys.exit()
 
     nazwy = {}
 
@@ -543,6 +468,7 @@ def getstep(e):
             if nname != "" and nname != "$":
                 nazwy[index] = nname
 
+    sys.exit()
     '''
     tdi = TopoDS_Iterator(shp)
     tdi.Initialize(shp)
@@ -592,39 +518,6 @@ def getstep(e):
 
 
 
-
-
-
-root.Bind(wx.EVT_MENU, getstep, id=3001)
-'''
-root.Bind(wx.EVT_COMBOBOX, updatemenu, id=501)
-root.Bind(wx.EVT_COMBOBOX, updatemenu, id=502)
-root.Bind(wx.EVT_COMBOBOX, updatemenu, id=503)
-ntree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, treesel)
-ntree.Bind(wx.EVT_COMBOBOX, ntback, id=1006)
-ntree.Bind(CT.EVT_TREE_ITEM_CHECKED, koza)
-for i in range(2000,2100):
-	ntree.Bind(wx.EVT_COMBOBOX, ntsmod, id=i)
-for i in range(4000,6100):
-	ntree.Bind(wx.EVT_COMBOBOX, ntsply, id=i)
-ntree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, treerefresh)
-ntree.Bind(wx.EVT_TREE_ITEM_EXPANDED, treerefresh)
-root.Bind(wx.EVT_CLOSE, onexit)
-root.Bind(wx.EVT_MENU, saveimage, id=3101)
-root.Bind(wx.EVT_MENU, showmax, id=3202)
-root.Bind(wx.EVT_MENU, fullon, id=3301)
-for i in range(3310,3312):
-	root.Bind(wx.EVT_MENU, anaglyph, id=i)
-root.Bind(wx.EVT_MENU, showcax, id=3302)
-'''
-
-print(koza)
+print("koza")
 
 getstep(0)
-#displayvtk.widget.SetEnabled(1)
-#displayvtk.widget.InteractiveOff()
-
-#ren.GetActiveCamera().SetParallelProjection(True)
-root.Show()
-
-aplikacja.MainLoop()
