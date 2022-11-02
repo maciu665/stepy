@@ -14,6 +14,7 @@ import builtins
 import os
 import sys
 import numpy as np
+import vg
 # from vtk.util.colors import *
 import gzip
 import zipfile
@@ -30,7 +31,7 @@ import csv
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.GeomAbs import GeomAbs_Plane, GeomAbs_Cylinder
-from OCC.Core.TopoDS import topods_Face, TopoDS_Iterator, TopoDS_ListOfShape
+from OCC.Core.TopoDS import topods_Face, TopoDS_Iterator, TopoDS_ListOfShape, TopoDS_TShape, TopoDS_Edge, topods_Edge
 from OCC.Core.GCPnts import GCPnts_AbscissaPoint, GCPnts_UniformAbscissa
 # from OCC.Core import BRepAdaptor
 # print(dir(BRepAdaptor))
@@ -58,6 +59,9 @@ from OCC.Core.TopTools import TopTools_MapOfShape,TopTools_IndexedMapOfShape,Top
 from OCC.Core.TopoDS import TopoDS_Compound, topods_Face
 from OCC.Core.TopAbs import TopAbs_SHELL,TopAbs_FACE,TopAbs_WIRE,TopAbs_EDGE,TopAbs_VERTEX
 from OCC.Core.TopLoc import TopLoc_Location
+from OCC.Core.BRepTools import breptools_UVBounds
+from OCC.Core.ShapeAnalysis import ShapeAnalysis_Surface,ShapeAnalysis_Edge
+from OCC.Core.GeomLProp import GeomLProp_SLProps
 
 shtypes = ["COMPOUND", "COMPSOLID", "SOLID",
            "SHELL", "FACE", "WIRE", "EDGE", "VERTEX"]
@@ -117,7 +121,29 @@ wiremap = TopTools_IndexedMapOfShape()
 edgemap = TopTools_IndexedMapOfShape()
 vertmap = TopTools_IndexedMapOfShape()
 
+def esh2type(eshp):
+    a = 0.0
+    b = 0.0
+    [curve_handle, a, b] = BRep_Tool.Curve(eshp)
+    ctypename = curve_handle.DynamicType().Name()
+    ctype = ctypes.index(ctypename)
+    return ctype
 
+def fsh2type(fshp):
+    stypes = ["Plane","Cylinder","Cone","Sphere","Torus","BezierSurface","BSplineSurface","SurfaceOfRevolution","SurfaceOfExtrusion","OffsetSurface","OtherSurface"]
+    surf = BRepAdaptor_Surface(topods_Face(fshp), True)
+    stype = surf.GetType()
+    return stype,stypes[stype]
+
+def fsh2normal(fshp,vpnt):
+    srf = BRep_Tool().Surface(fshp)
+    sas = ShapeAnalysis_Surface(srf)
+    uv = sas.ValueOfUV(vpnt, 1e-3)
+    #print(uv0.Coord())
+    props = GeomLProp_SLProps(srf, uv.Coord()[0], uv.Coord()[0], 1, 0.001);
+    ndir = props.Normal()
+    #print("normal : X=",ndir0.X(), "Y=", ndir0.Y(), "Z=", ndir0.Z())
+    return([ndir.X(), ndir.Y(), ndir.Z()])
 
 
 print("NBCHILDREN", shp.NbChildren(), shtypes[shp.ShapeType()])
@@ -129,9 +155,11 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
     mapwires = topexp_MapShapes(shp, TopAbs_WIRE, wiremap)
     mapedges = topexp_MapShapes(shp, TopAbs_EDGE, edgemap)
     mapverts = topexp_MapShapes(shp, TopAbs_VERTEX, vertmap)
+    #print(vertmap)
+    #sys.exit()
 
     print(shelmap)
-    print(dir(shelmap))
+    #print(dir(shelmap))
 
     numshels = shelmap.Size()
     numfaces = facemap.Size()
@@ -145,6 +173,7 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
     print(" wires:",numwires)
     print(" edges:",numedges)
     print(" verts:",numverts)
+    #sys.exit()
     #print(shellmap.FindKey(1))
 
     # V - E + F = 2
@@ -186,11 +215,7 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
             #print(tedge2)
             tfedgelist.append(tedge2)
 
-            a = 0.0
-            b = 0.0
-            [curve_handle, a, b] = BRep_Tool.Curve(tedge)
-            ctypename = curve_handle.DynamicType().Name()
-            ctype = ctypes.index(ctypename)
+            ctype = esh2type(tedge)
             #print(ctypename,ctype)
 
 
@@ -199,9 +224,104 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
         tflist.append(tvertmap.Size())
         tflist.append(tfedgelist)
 
-        print(tflist)
+        tfvertlist = []
+        for k in range(tvertmap.Size()):
+            nv = k+1
+            tvert = tvertmap.FindKey(nv)
+            tvert2 = vertmap.FindIndex(tvert)
+            #print(tvert2)
+            tfvertlist.append(tvert2)
+        tflist.append(tfvertlist)
+
+        print(nf, tflist)
+    
+    # EDGES #
+    # {[type,#wires,#edges,#verts,list_of_edge_indexes,list_of_vertex_indexes]}
+    #types 0-flat-flat 1-flat-cylinder 2-cylinder-cylinder 3-flat-same_flat 4-cylinder-same_cylinder 5-flat-other 6-other
+
+    for i in range(numedges):       #iterate over all edges
+        ne = i+1
+        telist = []
+        teshp = edgemap.FindKey(ne)  #edge shape
+        ctype = esh2type(teshp)
+        #print(ctype)
+
+        tvertmap = TopTools_IndexedMapOfShape()
+        tmapverts = topexp_MapShapes(teshp, TopAbs_VERTEX, tvertmap)
+        print(tvertmap.Size())
+        vert0 = tvertmap.FindKey(1)
+        #print(vert0)
+
+        v = topods_Vertex(vert0)
+        pnt = BRep_Tool.Pnt(v)
+        #print("3d gp_Pnt selected coordinates : X=",pnt.X(), "Y=", pnt.Y(), "Z=", pnt.Z())
+        #vertices.append([pnt.X(), pnt.Y(), pnt.Z()])
+
+        parentfacemap = TopTools_IndexedDataMapOfShapeListOfShape()
+        tmapwires2 = topexp_MapShapesAndAncestors(shp, TopAbs_EDGE, TopAbs_FACE, parentfacemap)
+        parentfaceindex = parentfacemap.FindFromKey(teshp)
+        f0,f1 = parentfaceindex.First(),parentfaceindex.Last()
+        fi0,fi1 = facemap.FindIndex(parentfaceindex.First()),facemap.FindIndex(parentfaceindex.Last())
+        
+        stype0,stypetxt0 = fsh2type(f0)
+        stype1,stypetxt1 = fsh2type(f1)
+        #print(stype0,stypetxt0,stype1,stypetxt1)
+
+        norm0 = fsh2normal(f0,pnt)
+        norm1 = fsh2normal(f1,pnt)
+        #print(norm0)
+        #print(norm1)
+
+
+        vec1 = np.array(norm0)
+        vec2 = np.array(norm1)
+        vec1 = np.array(norm0)
+        vec2 = np.array(norm1)
+
+        #print(vg.angle(vec1, vec2))
+
+        #print(stype0,stype1)
+
+
+        tds = topods_Edge(teshp)
+        #tds2 = TopoDS_Edge(teshp)
+        #print(tds)
+        #print(dir(tds))
+        #print(tds.Convex())
+
+        print(dir(shp))
+        
+        tsrf = tds
+        tsas = ShapeAnalysis_Edge()
+        print(dir(tsas))
+
 
         sys.exit()
+
+
+
+        print(ne,facemap.FindIndex(parentfaceindex.First()),facemap.FindIndex(parentfaceindex.Last()))
+
+
+        #print(tf)
+        sys.exit()
+
+
+
+        #tface = topods_Face(tfshp)
+        #umin, umax, vmin, vmax = breptools_UVBounds(tfshp)
+        #print(umin,umax,vmin,vmax)
+
+
+
+
+        #sys.exit()
+
+        
+
+
+
+    sys.exit()
         
 
 
