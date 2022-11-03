@@ -15,6 +15,7 @@ import os
 import sys
 import numpy as np
 import vg
+import math
 # from vtk.util.colors import *
 import gzip
 import zipfile
@@ -27,6 +28,7 @@ import vtkmodules
 import vtkmodules.all
 from step_fun import *
 import csv
+import vtk
 
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
@@ -51,17 +53,23 @@ from OCCUtils.edge import Edge
 from OCC.Core.BRep import BRep_Builder, BRep_Tool
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeSphere
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge,BRepBuilderAPI_MakeVertex
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 
 from OCC.Core.TopExp import TopExp_Explorer,topexp_MapShapes,topexp_MapShapesAndAncestors
 from OCC.Core.TopTools import TopTools_MapOfShape,TopTools_IndexedMapOfShape,TopTools_IndexedDataMapOfShapeListOfShape,TopTools_ListOfShape
 from OCC.Core.TopoDS import TopoDS_Compound, topods_Face
-from OCC.Core.TopAbs import TopAbs_SHELL,TopAbs_FACE,TopAbs_WIRE,TopAbs_EDGE,TopAbs_VERTEX
+from OCC.Core.TopAbs import TopAbs_SHELL,TopAbs_FACE,TopAbs_WIRE,TopAbs_EDGE,TopAbs_VERTEX,TopAbs_REVERSED
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.BRepTools import breptools_UVBounds
+from OCC.Core.BRepTools import breptools_UVBounds,breptools_CheckLocations
 from OCC.Core.ShapeAnalysis import ShapeAnalysis_Surface,ShapeAnalysis_Edge
 from OCC.Core.GeomLProp import GeomLProp_SLProps
+from OCC.Core.GeomAPI import GeomAPI_ProjectPointOnSurf
+from OCC.Core.gp import gp_Pnt
+from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+from OCC.Core.BRepClass import BRepClass_FaceClassifier
+
+from OCC.Core.GCPnts import GCPnts_UniformAbscissa,GCPnts_QuasiUniformDeflection,GCPnts_UniformDeflection
 
 shtypes = ["COMPOUND", "COMPSOLID", "SOLID",
            "SHELL", "FACE", "WIRE", "EDGE", "VERTEX"]
@@ -135,13 +143,28 @@ def fsh2type(fshp):
     stype = surf.GetType()
     return stype,stypes[stype]
 
-def fsh2normal(fshp,vpnt):
+def fsh2uv(fshp,vpnt):
     srf = BRep_Tool().Surface(fshp)
     sas = ShapeAnalysis_Surface(srf)
     uv = sas.ValueOfUV(vpnt, 1e-3)
+    return uv
+
+def fsh2pnt(fshp,u,v):
+    srf = BRep_Tool().Surface(fshp)
+    sas = ShapeAnalysis_Surface(srf)
+    pnt = sas.Value(u,v)
+    return pnt
+
+def fsh2normal(fshp,vpnt):
+    srf = BRep_Tool().Surface(fshp)
+    #sas = ShapeAnalysis_Surface(srf)
+    uv = fsh2uv(fshp,vpnt)
     #print(uv0.Coord())
     props = GeomLProp_SLProps(srf, uv.Coord()[0], uv.Coord()[0], 1, 0.001);
     ndir = props.Normal()
+    if fshp.Orientation() == TopAbs_REVERSED:    
+        #print("reverse")
+        ndir.Reverse()
     #print("normal : X=",ndir0.X(), "Y=", ndir0.Y(), "Z=", ndir0.Z())
     return([ndir.X(), ndir.Y(), ndir.Z()])
 
@@ -236,8 +259,27 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
         print(nf, tflist)
     
     # EDGES #
-    # {[type,#wires,#edges,#verts,list_of_edge_indexes,list_of_vertex_indexes]}
-    #types 0-flat-flat 1-flat-cylinder 2-cylinder-cylinder 3-flat-same_flat 4-cylinder-same_cylinder 5-flat-other 6-other
+    # {[type,class,list_of_face_indexes,list_of_vertex_indexes]}
+    #
+    #classes 0-flat-flat 1-flat-cylinder 2-cylinder-cylinder 3-flat-same_flat 4-cylinder-same_cylinder 5-flat-other 6-other
+
+    u = vtk.vtkUnstructuredGrid()
+    evnum = 0
+    vpts = vtk.vtkPoints()
+    atype = vtk.vtkIntArray()
+    atype.SetName("EdgeType")
+    u.GetCellData().AddArray(atype)
+    aeid = vtk.vtkIntArray()
+    aeid.SetName("EdgeId")
+    u.GetCellData().AddArray(aeid)
+    aclass = vtk.vtkIntArray()
+    aclass.SetName("EdgeClass")
+    aangle = vtk.vtkDoubleArray()
+    aangle.SetName("EdgeAngle")
+    u.GetCellData().AddArray(aangle)
+    avexity = vtk.vtkIntArray()
+    avexity.SetName("EdgeVexity")
+    u.GetCellData().AddArray(avexity)
 
     for i in range(numedges):       #iterate over all edges
         ne = i+1
@@ -245,10 +287,12 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
         teshp = edgemap.FindKey(ne)  #edge shape
         ctype = esh2type(teshp)
         #print(ctype)
+        atype.InsertNextValue(ctype)
+        aeid.InsertNextValue(ne)
 
         tvertmap = TopTools_IndexedMapOfShape()
         tmapverts = topexp_MapShapes(teshp, TopAbs_VERTEX, tvertmap)
-        print(tvertmap.Size())
+        #print(tvertmap.Size())
         vert0 = tvertmap.FindKey(1)
         #print(vert0)
 
@@ -271,6 +315,139 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
         norm1 = fsh2normal(f1,pnt)
         #print(norm0)
         #print(norm1)
+
+        umin0, umax0, vmin0, vmax0 = breptools_UVBounds(f0)
+        umid0 = (umin0+umax0)/2
+        vmid0 = (vmin0+vmax0)/2
+        [tu,tv] = fsh2uv(f0,pnt).Coord()
+        tu0 = tu+(0.001*(umid0-tu))
+        tv0 = tv+(0.001*(vmid0-tv))
+        tpnt0 = fsh2pnt(f0,tu0,tv0)
+        tpnt0 = [tpnt0.X(),tpnt0.Y(),tpnt0.Z()]
+
+        umin1, umax1, vmin1, vmax1 = breptools_UVBounds(f1)
+        umid1 = (umin1+umax1)/2
+        vmid1 = (vmin1+vmax1)/2
+        [tu1,tv1] = fsh2uv(f1,pnt).Coord()
+        tu1 = tu1+(0.001*(umid1-tu1))
+        tv1 = tv1+(0.001*(vmid1-tv1))
+        tpnt1 = fsh2pnt(f1,tu1,tv1)
+        tpnt1 = [tpnt1.X(),tpnt1.Y(),tpnt1.Z()]
+
+        dstorg = math.dist(tpnt0,tpnt1)
+
+        vec1 = np.array(norm0)
+        vec2 = np.array(norm1)
+        eangle = vg.angle(vec1, vec2)
+
+        #print(dstorg)
+        atpnt0,atpnt1 = np.array(tpnt0),np.array(tpnt1)
+        dstdis = math.dist(atpnt0+(np.array(norm0)*dstorg*0.1),atpnt1+(np.array(norm1)*dstorg*0.1))
+        #print(dstdis-dstorf)
+        if round(eangle,2) == 180:
+            eangle = 0
+
+        aangle.InsertNextValue(eangle)
+        '''
+        if round(eangle,2) == 0:
+            avexity.InsertNextValue(0)
+        else:
+            if (dstdis-dstorg) > 0:
+                avexity.InsertNextValue(1)
+                #print(f0.Orientation(),f1.Orientation())
+            else:
+                avexity.InsertNextValue(2)
+                #print(norm0,norm1,eangle,pnt,ne)
+                #print(f0.Orientation(),f1.Orientation())
+        if ne == 60:
+            print(norm0,norm1,eangle,pnt,ne)
+            #print(f0.Orientation(),f1.Orientation())
+            print(dstdis,dstorg)
+            print(tpnt0)
+            print(tpnt1)
+        '''
+        
+        srf0 = BRep_Tool().Surface(f0)
+        ppnt = np.array([pnt.X(), pnt.Y(), pnt.Z()])
+        #print(ppnt)
+        p2proj = ppnt + (vec2*0.001)
+        occp2proj = gp_Pnt()
+        occp2proj.SetCoord(p2proj[0],p2proj[1],p2proj[2])
+        projpnt0 = GeomAPI_ProjectPointOnSurf(occp2proj, srf0)
+        au = 0
+        av = 0
+        
+        if round(eangle,2) == 0:
+            avexity.InsertNextValue(0)
+        else:
+            #print(ne,projpnt0.NbPoints(),projpnt0.Distance(1),projpnt0.IsDone(),projpnt0.NearestPoint())
+            ppp = projpnt0.NearestPoint()
+            #ppv = BRepBuilderAPI_MakeVertex(ppp)
+            #bex = BRepExtrema_DistShapeShape(f0,ppv)
+            classifier = BRepClass_FaceClassifier(f0, ppp, 0.0001)
+            #print("cs",classifier.State())
+            if classifier.State() == 0:
+                #print("concave")
+                avexity.InsertNextValue(2)
+            else:
+                avexity.InsertNextValue(1)
+
+       
+        #GeomAPI_ProjectPointOnSurf
+        
+
+
+        #projpnt0 = GeomAPI_ProjectPointOnSurf(pnt, surf)
+        #double au, av; //the u- and v-coordinates of the projected point
+        #projpnta.LowerDistanceParameters(au, av); //get the nearest projection
+        #gp_Pnt2d pnta2d(au, av); //equivalent 2d description of
+
+        #sys.exit()
+
+
+
+        #print("EDGE",fi0,fi1,eangle)
+        #print(dstdis-dstorg)
+
+        ca = BRepAdaptor_Curve(teshp)
+        #print(dir(teshp))
+        #print(dir(ca))
+        edis = GCPnts_UniformDeflection()
+        edis.Initialize(ca, 0.1)
+        #print(ediscretizer.Parameter())
+        edgevpts = edis.NbPoints()
+        #print("evpoints",edgevpts)
+        eids = vtk.vtkIdList()
+
+        for p in range(0,edis.NbPoints()):
+            cpt = ca.Value(edis.Parameter(p+1))
+            #print(p,cpt)
+            eids.InsertId(p,p+evnum)
+            vpts.InsertPoint(p+evnum,[cpt.X(),cpt.Y(),cpt.Z()])
+        
+        u.InsertNextCell(4,eids)
+        evnum += edgevpts
+
+
+        #sys.exit()
+
+
+
+
+
+        '''
+        print(umin0,umax0,vmin0,vmax0)
+        print(tu,tv)
+        print(umid0,vmid0)
+        print(tu0,tv0)
+
+        
+        print(tpnt0,tpnt1)
+        print(pnt)
+
+
+        
+        sys.exit()
 
 
         vec1 = np.array(norm0)
@@ -316,6 +493,13 @@ if shp.NbChildren() == 1 and shtypes[shp.ShapeType()] == "SOLID":
 
 
         #sys.exit()
+        '''
+    u.SetPoints(vpts)
+
+    uw = vtk.vtkXMLUnstructuredGridWriter()
+    uw.SetFileName("/home/maciejm/GIT/STEPY/"+s.replace("stp","vtu"))
+    uw.SetInputData(u)
+    uw.Update()
 
         
 
