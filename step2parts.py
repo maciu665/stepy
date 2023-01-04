@@ -52,6 +52,7 @@ from OCC.Core.Bnd import Bnd_Box
 filename = "/home/maciejm/GIT/STEPY/ASSES/F4150-151-002.stp"
 filename = "/home/maciejm/GIT/STEPY/23_Luftsysteme_2022-08-12.stp"
 filename = "/home/maciejm/GIT/STEPY/10_Stahlbau_2022-05-24.stp"
+filename = "/home/maciejm/GIT/STEPY/ASSES/K4500-001-001.stp"
 
 if not os.path.isfile(filename):
     print("file not found.")
