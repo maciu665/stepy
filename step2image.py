@@ -21,6 +21,9 @@ import shutil
 import time
 import vtkmodules
 import vtkmodules.all
+from PIL import Image
+
+from stl_render_fun import *
 from step_fun import *
 from scipy.spatial.transform import Rotation
 
@@ -67,7 +70,10 @@ nazwa = "E:/GIT/DOKTORAT/STEPY/plaskownik_00003.stp"
 
 stepdir = "E:/GIT/DOKTORAT/STEPY"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/PROFILE"
+stepdir = "/home/maciejm/GIT/STEPY/PARTY0"
 stls = "/home/maciejm/GIT/STEPY/STL"
+imtmpdir = "/home/maciejm/GIT/STEPY"
+imdir = "/home/maciejm/GIT/STEPY/IMG"
 
 tsteplista = os.listdir(stepdir)
 #print(tsteplista)
@@ -78,17 +84,133 @@ for i in tsteplista:
 
 #steplista = [nazwa]
 
+
+
+
+
+resolution = 920,540			#rodzielczosc
+bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
+surface = 1						#czy wyswietlac powierzchnie
+scolor = 0.5,0.5,0.5			#kolor powierzchni
+edges = 1						#czy wyswietlac krawedzie
+ecolor = 1,1,1					#kolor krawedzi
+ethickness = 3					#grubosc krawedzi
+
+campos = 1,1,1					#pozycja kamery
+camper = 0						#0-perspektywa, 1-rzutowanie rownolegle
+noshading = 0					#wylaczenie cieniowania
+cam_angle = 1					#pozycja kamery z kątów
+azimuth = 45					#azymut kamery
+elevation = 30					#wznios kamery
+
+merge = 1						#czy skleic pliki w jeden duzy
+
+
+def wrender(im,imfile,killit=0):
+	if im:
+		win.Render()
+
+		w2if = vtk.vtkWindowToImageFilter()
+		w2if.SetInput(win)
+		w2if.Update()
+
+		iw = vtk.vtkPNGWriter()
+		iw.SetFileName(imfile)
+		iw.SetInputData(w2if.GetOutput())
+		iw.Write()
+		if killit:
+			sys.exit()
+	else:
+		win.OffScreenRenderingOff()
+		# ren.ResetCamera()
+		win.Render()
+		iren.Initialize()
+		iren.Start()
+		win.Render()
+
+im = 1
+
+ren = vtk.vtkRenderer()
+win = vtkwin()
+win.AddRenderer(ren)
+ren.GradientBackgroundOff()
+win.SetSize(resolution)
+ren.SetBackground(bgcolor)
+
+if im:
+	win.OffScreenRenderingOn()
+else:
+	win.Render()
+	lights = ren.GetLights()
+	lights.InitTraversal()
+	hl = lights.GetNextItem()
+	hl.SetIntensity(0.0)
+
+
+#sys.exit()
+mapper = vtk.vtkPolyDataMapper()
+
+
+
+########################################################################
+camera = ren.GetActiveCamera()
+camera.SetPosition(campos)
+camera.SetViewUp(0,0,1)
+camera.SetFocalPoint(0,0,0)
+camera.SetParallelScale(1)
+camera.SetParallelProjection(camper)
+
+########################################################################	LIGHT
+
+#print hl
+
+lightKit = vtk.vtkLightKit()
+
+
+lightKit.SetKeyLightWarmth(0.6)
+lightKit.SetKeyLightIntensity(0.75)
+lightKit.SetKeyLightElevation(50)
+lightKit.SetKeyLightAzimuth(10)
+
+lightKit.SetFillLightWarmth(0.4)
+lightKit.SetKeyToFillRatio(3)
+lightKit.SetFillLightElevation(-75)
+lightKit.SetFillLightAzimuth(-10)
+
+lightKit.SetBackLightWarmth(0.5)
+lightKit.SetKeyToBackRatio(3.50)
+lightKit.SetBackLightElevation(0)
+lightKit.SetBackLightAzimuth(110)
+
+lightKit.SetHeadLightWarmth(0.5)
+lightKit.SetKeyToHeadRatio(3)
+
+lightKit.MaintainLuminanceOn()
+lightKit.AddLightsToRenderer(ren)
+
+
+
+
+
+
+
+pactor = vtk.vtkActor()
+eactor = vtk.vtkActor()
+
+
+
+
 failist = ""
 
 for s in steplista:
     nazwa = os.path.join(stepdir,s)
     snazwa = os.path.join(stls,s.replace(".stp",".stl"))
+    inazwa = os.path.join(imdir,s.replace(".stp",".png"))
     print(nazwa,snazwa)
 
 
 
-    #try:
-    if 1:
+    try:
         print(os.path.exists(nazwa))
 
         # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
@@ -449,15 +571,157 @@ for s in steplista:
         #if transowanie.GetOutput().GetNumberOfCells() < 4:
         #    k = bnds/0
         #    sys.exit()
-        print(transowanie.GetOutput())
+        print()
+
+        stl = transowanie.GetOutput()
 
         stlw = vtk.vtkSTLWriter()
-        stlw.SetInputConnection(transowanie.GetOutputPort())
+        stlw.SetInputData(stl)
         stlw.SetFileTypeToBinary()
         stlw.SetFileName(snazwa)
         stlw.Update()
+        
+        for a in [eactor,pactor]:
+            try:
+                ren.RemoveActor(a)
+            except:
+                pass
 
-        sys.exit()
+
+        mapper.SetInputData(stl)
+        mapper.ScalarVisibilityOff()
+        mapper.SetResolveCoincidentTopologyToPolygonOffset()
+        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(-3.5,-3.5)
+        # mapper.SetResolveCoincidentTopologyToShiftZBuffer()
+
+
+        edges3 = vtk.vtkFeatureEdges()
+        edges3.ColoringOff()
+        edges3.SetInputData(stl)
+        edges3.ManifoldEdgesOn()
+        edges3.NonManifoldEdgesOn()
+        edges3.FeatureEdgesOn()
+        edges3.BoundaryEdgesOn()
+        edges3.Update()
+
+        vprop = vtk.vtkProperty()
+        vprop.LightingOn()
+        if noshading:
+            vprop.LightingOff()
+        vprop.SetColor(scolor)
+        vprop.SetSpecular(0)
+        vprop.SetSpecularPower(100)
+
+        pactor = vtk.vtkActor()
+        pactor.SetMapper(mapper)
+        pactor.SetProperty(vprop)
+
+        emapper = vtk.vtkDataSetMapper()
+        emapper.SetInputConnection(edges3.GetOutputPort())
+        emapper.SetResolveCoincidentTopologyToPolygonOffset()
+        emapper.ScalarVisibilityOff()
+        eactor = vtk.vtkActor()
+        eactor.SetMapper(emapper)
+
+        eprop = eactor.GetProperty()
+        eprop.SetEdgeColor(ecolor)
+        eprop.SetColor(ecolor)
+        eprop.SetLineWidth(ethickness)
+        eprop.SetRepresentationToWireframe()
+        eprop.SetOpacity(1)
+
+        if edges:
+            ren.AddActor(eactor)
+        if surface:
+            ren.AddActor(pactor)
+        ren.ResetCamera()
+
+                #print(camera.GetPosition())
+        #print(camera.GetFocalPoint())
+        #print(camera.GetClippingRange())
+        camera.SetViewAngle(20)
+        #ren.ResetCamera()
+        # print(camera.GetPosition())
+        ren.ResetCameraClippingRange()
+
+
+        imfile1 = os.path.join(imtmpdir,"image1.png")
+        bnds = stl.GetBounds()
+        print("bnds", bnds)
+        
+        bndcenter = [(bnds[1]+bnds[0])/2,(bnds[3]+bnds[2])/2,(bnds[5]+bnds[4])/2]
+        bndsize = [(bnds[1]-bnds[0]),(bnds[3]-bnds[2]),(bnds[5]-bnds[4])]
+        print(bndcenter)
+        print(bndsize)
+
+        camera.SetParallelScale(80)
+
+        psfromheight = bndsize[2]/2*1.1
+        psfromwidth = bndsize[1]/2/(16/9)*1.1
+        #print(psfromheight,psfromwidth)
+
+        camera.SetParallelScale(max(psfromheight,psfromwidth))
+
+        camera.SetParallelProjection(1)
+        camera.SetPosition(bndcenter[0]+10000,bndcenter[1],bndcenter[2])
+        camera.SetFocalPoint(bndcenter)
+        ren.ResetCameraClippingRange()
+        camera.SetViewUp(0,0,1)
+
+        #ren.AddActor(pactor)
+        #ren.AddActor(eactor)
+        ren.SetBackground(1,1,1)
+        eprop.SetEdgeColor(0,0,0)
+        eprop.SetColor(0,0,0)
+        wrender(1,imfile1)
+
+        camera.SetPosition(bndcenter[0],bndcenter[1]+10000,bndcenter[2])
+        psfromheight = bndsize[2]/2*1.1
+        psfromwidth = bndsize[0]/2/(16/9)*1.1
+        camera.SetParallelScale(max(psfromheight,psfromwidth))
+        camera.SetViewUp(0,0,1)
+        ren.ResetCameraClippingRange()
+        imfile2 = os.path.join(imtmpdir,"image2.png")
+        wrender(1,imfile2)
+
+        camera.SetPosition(bndcenter[0],bndcenter[1],bndcenter[2]+10000)
+        psfromheight = bndsize[1]/2*1.1
+        psfromwidth = bndsize[0]/2/(16/9)*1.1
+        camera.SetParallelScale(max(psfromheight,psfromwidth))
+        camera.SetViewUp(0,1,0)
+        ren.ResetCameraClippingRange()
+        imfile3 = os.path.join(imtmpdir,"image3.png")
+        wrender(1,imfile3)
+
+        camera.SetPosition(bndcenter[0]+10000,bndcenter[1]+10000,bndcenter[2]+10000)
+        camera.SetParallelProjection(0)
+        camera.SetViewUp(0,1,0)
+        ren.ResetCamera()
+        ren.ResetCameraClippingRange()
+        imfile4 = os.path.join(imtmpdir,"image4.png")
+        wrender(1,imfile4)
+        
+        if merge:
+            image1 = Image.open(imfile1)
+            image2 = Image.open(imfile2)
+            image3 = Image.open(imfile3)
+            image4 = Image.open(imfile4)
+            #resize, first image
+            # image1 = image1.resize((1080, 1080))
+            image1_size = image1.size
+            new_image = Image.new('RGB',(image1_size[0]*2,image1_size[1]*2), (250,250,250))
+            new_image.paste(image1,(0,0))
+            new_image.paste(image2,(image1.size[0],0))
+            new_image.paste(image3,(0,image1.size[1]))
+            new_image.paste(image4,(image1.size[0],image1.size[1]))
+            new_image.save(inazwa,"PNG")
+
+            os.remove(imfile1)
+            os.remove(imfile2)
+            os.remove(imfile3)
+            os.remove(imfile4)
+
+        #sys.exit()
 
 
         '''
@@ -471,9 +735,9 @@ for s in steplista:
 
 
     # sys.exit()
-    #except:
-        #failist += "%s\n"%nazwa
+    except:
+        failist += "%s\n"%nazwa
 
-f = open("E:/GIT/DOKTORAT/fail.txt","w")
+f = open("/home/maciejm/GIT/STEPY/fail.txt","w")
 f.write(failist)
 f.close()
