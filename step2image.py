@@ -88,7 +88,7 @@ for i in tsteplista:
 
 
 
-resolution = 920,540			#rodzielczosc
+resolution = 960,540			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
 surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
