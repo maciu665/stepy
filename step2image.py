@@ -22,6 +22,8 @@ import time
 import vtkmodules
 import vtkmodules.all
 from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw 
 
 from stl_render_fun import *
 from step_fun import *
@@ -71,6 +73,7 @@ nazwa = "E:/GIT/DOKTORAT/STEPY/plaskownik_00003.stp"
 stepdir = "E:/GIT/DOKTORAT/STEPY"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/PROFILE"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY0"
+stepdir = "/home/maciejm/GIT/STEPY/PARTY2/BLACHY"
 stls = "/home/maciejm/GIT/STEPY/STL"
 imtmpdir = "/home/maciejm/GIT/STEPY"
 imdir = "/home/maciejm/GIT/STEPY/IMG"
@@ -198,7 +201,7 @@ pactor = vtk.vtkActor()
 eactor = vtk.vtkActor()
 
 
-
+font = ImageFont.truetype("NotoMono-Regular.ttf", 40)
 
 failist = ""
 
@@ -696,16 +699,22 @@ for s in steplista:
         camera.SetPosition(bndcenter[0]+10000,bndcenter[1]+10000,bndcenter[2]+10000)
         camera.SetParallelProjection(0)
         camera.SetViewUp(0,1,0)
+        vprop.SetOpacity(0.5)
         ren.ResetCamera()
         ren.ResetCameraClippingRange()
         imfile4 = os.path.join(imtmpdir,"image4.png")
         wrender(1,imfile4)
+        vprop.SetOpacity(1.0)
         
         if merge:
             image1 = Image.open(imfile1)
             image2 = Image.open(imfile2)
             image3 = Image.open(imfile3)
             image4 = Image.open(imfile4)
+            draw1 = ImageDraw.Draw(image4)
+            draw1.text((0, 0),"X=%.1f\nY=%.1f\nZ=%.1f"%(bndsize[0],bndsize[1],bndsize[2]),(255,0,255),font=font)
+
+
             #resize, first image
             # image1 = image1.resize((1080, 1080))
             image1_size = image1.size

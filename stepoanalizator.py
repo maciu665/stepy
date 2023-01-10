@@ -61,6 +61,8 @@ shtypes = ["COMPOUND", "COMPSOLID", "SOLID",
 nazwa = "E:/GIT/DOKTORAT/STEPY/dwuteownik_00059.stp"
 
 stepdir = "E:/GIT/DOKTORAT/STEPY"
+stepdir = "/home/maciejm/GIT/STEPY/PARTY2/BLACHY/"
+stepdir = "/home/maciejm/GIT/STEPY/PARTY2/PROFILE/"
 
 steplista = os.listdir(stepdir)
 # print(steplista)
@@ -69,6 +71,8 @@ failist = ""
 # steplista = ["dwuteownik_00059.stp"]
 
 fulltopolista = []
+eulist = []
+solist = []
 
 for s in steplista:
     try:
@@ -98,9 +102,11 @@ for s in steplista:
         print("NBCHILDREN", shp.NbChildren(), shtypes[shp.ShapeType()])
         tsldi = TopoDS_Iterator(shp)
         tsldi.Initialize(shp)
+        solids = 0
         while tsldi.More():
             print("SHELL")
             tshp = tsldi.Value()
+            solids += 1
             print(tshp.NbChildren())
             print(tshp.ShapeType(), shtypes[tshp.ShapeType()])
             tshli = TopoDS_Iterator(tshp)
@@ -130,7 +136,7 @@ for s in steplista:
                         print(ttttshp.ShapeType(),
                               shtypes[ttttshp.ShapeType()])
 
-                        curv = BRepAdaptor_Curve(ttttshp).Curve()
+                        #curv = BRepAdaptor_Curve(ttttshp).Curve()
                         # print("curv",curv.GetType())
                         # print(dir(curv))
                         # print(curv)
@@ -219,17 +225,24 @@ for s in steplista:
             topolist = [s.rsplit("_")[0], numfaces, numedges,
                         numverts, fp, fc, fo, el, ec, ee, eo, ece, euler]
             fulltopolista.append(topolist)
+            if euler != 2:
+                eulist.append(nazwa)
+            if solids > 1:
+                solist.append(nazwa)
 
             print(topolist)
     except:
         failist += "%s\n" % nazwa
 
 
-f = open("E:/GIT/DOKTORAT/afail.txt", "w")
+f = open("/home/maciejm/GIT/STEPY/afail.txt", "w")
 f.write(failist)
 f.close()
 
 fulltopocsv = ""
+eulista = ""
+solista = ""
+
 for l in fulltopolista:
     linia = ""
     for k in l:
@@ -238,11 +251,23 @@ for l in fulltopolista:
     linia += "\n"
     fulltopocsv += linia
 
-f = open('E:/GIT/DOKTORAT/topolista.csv', 'w')
+for i in eulist:
+    eulista += "rm %s\n"%i
+
+for i in solist:
+    solista += "rm %s\n"%i
+
+f = open('/home/maciejm/GIT/STEPY/topolista.csv', 'w')
 f.write(fulltopocsv)
 f.close()
 
+f = open('/home/maciejm/GIT/STEPY/eulista.sh', 'w')
+f.write(eulista)
+f.close()
 
+f = open('/home/maciejm/GIT/STEPY/solista.sh', 'w')
+f.write(solista)
+f.close()
 
 print(fulltopolista)
 
