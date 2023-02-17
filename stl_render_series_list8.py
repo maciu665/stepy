@@ -9,13 +9,15 @@ from PIL import Image
 #import vtkOSPRayPass
 
 
-cfolder = "E:/GIT/DOKTORAT/STL_PROC"		#folder z plikami stl
-ifolder1 = "E:/GIT/DOKTORAT/STL_8IMAGES_SW"		#folder z obrazkami
-ifolder2 = "E:/GIT/DOKTORAT/STL_8IMAGES_SB"		#folder z obrazkami
-ifolder3 = "E:/GIT/DOKTORAT/STL_8IMAGES_WW"		#folder z obrazkami
-ifolder4 = "E:/GIT/DOKTORAT/STL_8IMAGES_WB"		#folder z obrazkami
+ifolder1 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SHADED_WHITE_BG/"		#folder z obrazkami
+ifolder2 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SHADED_BLACK_BG/"		#folder z obrazkami
+ifolder3 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WIREFRAME_WHITE_BG/"		#folder z obrazkami
+ifolder4 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WIREFRAME_BLACK_BG/"		#folder z obrazkami
+ifolder5 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_WHITE_BG/"		#folder z obrazkami
+ifolder6 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_BLACK_BG/"		#folder z obrazkami
+cfolder = "/home/maciejm/PHD/PUBLIKACJA_02/STL"
 
-resolution = 299,299			#rodzielczosc
+resolution = 224,224			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
 surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
@@ -26,7 +28,7 @@ ethickness = 1					#grubosc krawedzi
 campos = 1,1,1					#pozycja kamery
 camper = 0						#0-perspektywa, 1-rzutowanie rownolegle
 noshading = 0					#wylaczenie cieniowania
-cam_angle = 1					#pozycja kamery z kątów
+cam_angle = 1					#pozycja kamery z katow
 azimuth = 45					#azymut kamery
 elevation = 30					#wznios kamery
 
@@ -38,27 +40,39 @@ lista = os.listdir(cfolder)		#lista plikow
 print(lista)
 lista.sort()
 
-profile = [[],[],[],[]]
+nazwy = ["C-BEAM_","I-BEAM_","L-BEAM_","FLAT-BAR_","SQUARE-BAR_","ROUND-BAR_","HOLLOW-SECTION_","PIPE_"]
+
+
+profile = [[],[],[],[],[],[],[],[]]
 for i in lista:
-	if "kwadratowy" in i:
+	if "ceownik" in i:
 		profile[0].append(i)
-	elif "okragly" in i:
+	elif "dwuteownik" in i:
 		profile[1].append(i)
-	elif "profil" in i:
+	elif "katownik" in i:
 		profile[2].append(i)
-	elif "rura" in i:
+	elif "plaskownik" in i:
 		profile[3].append(i)
+	elif "kwadratowy" in i:
+		profile[4].append(i)
+	elif "okragly" in i:
+		profile[5].append(i)
+	elif "profil" in i:
+		profile[6].append(i)
+	elif "rura" in i:
+		profile[7].append(i)
+
 
 #print(profile[2])
 #print(profile[3])
-print(len(profile[0]),len(profile[1]),len(profile[2]),len(profile[3]))
+print(len(profile[0]),len(profile[1]),len(profile[2]),len(profile[3]),len(profile[4]),len(profile[5]),len(profile[6]),len(profile[7]))
 # sys.exit()
-f = open("E:/GIT/DOKTORAT/camera.txt","r")
+f = open("/home/maciejm/PHD/PUBLIKACJA_02/views1.txt","r")
 linie = f.read().splitlines()
 f.close()
 
 print(len(linie))
-# sys.exit()
+#sys.exit()
 
 
 
@@ -214,14 +228,15 @@ lastfile = lista[0]
 for l in range(len(linie[:])):
 	linia = linie[l].split("_")
 	print(linia)
-
-	plik = profile[int(linia[1])][int(linia[0])]
+	type = int(linia[1])
+	plik = profile[type][int(linia[0])]
 	print(plik)
 	coords = linia[5].split("(")[1].split(")")[0]
 	print(coords)
 	cx = float(coords.split(", ")[0])
 	cy = float(coords.split(", ")[1])
 	cz = float(coords.split(", ")[2])
+	#sys.exit()
 
 	'''
 	typ = plik.rsplit("_")[0]
@@ -251,9 +266,12 @@ for l in range(len(linie[:])):
 	imfile = os.path.join(ifolder1,imname)
 	print(plik, imname)
 	print(imfile)
-
-	campos = cx*1,cy*1,cz*1
-	camfoc = (cx-y)*1,(cy-x)*1,(cz-z)*1
+	
+	mult = 1
+	if type in [0,1,2,3]:
+		mult = 1000
+	campos = cx*mult,cy*mult,cz*mult
+	camfoc = (cx-y)*mult,(cy-x)*mult,(cz-z)*mult
 	camera.SetPosition(campos)
 	camera.SetFocalPoint(camfoc)
 	#camera.SetFocalPoint(0,0,0)
@@ -279,8 +297,10 @@ for l in range(len(linie[:])):
 
 		transowanie = vtk.vtkTransformFilter()
 		trans = vtk.vtkTransform()
-		trans.Scale(1, 1, 1)
-		#trans.Translate(tx,0,spb[4]*-1)
+		if type in [0,1,2,3]:
+			trans.Translate(tx,0,spb[4]*-1)
+		else:
+			trans.Scale(1, 1, 1)
 		transowanie.SetTransform(trans)
 		transowanie.SetInputData(stl)
 		transowanie.Update()
@@ -322,9 +342,38 @@ for l in range(len(linie[:])):
 	imfile = os.path.join(ifolder2,imname)
 	wrender(1,imfile)
 
-	ren.RemoveActor(pactor)
+	#ren.RemoveActor(pactor)
+	#vprop.SetColor(scolor)
+	vprop.SetColor(1,1,1)
+	vprop.LightingOff()
+	emapper.SetResolveCoincidentTopologyToPolygonOffset()
+	emapper.SetResolveCoincidentTopologyLineOffsetParameters(1,-10)
+	smapper.SetResolveCoincidentTopologyLineOffsetParameters(1,-10)
+
 	ren.AddActor(eactor)
 	ren.AddActor(sactor)
+	ren.SetBackground(1,1,1)
+	eprop.SetEdgeColor(0,0,0)
+	sprop.SetEdgeColor(0,0,0)
+	eprop.SetColor(0,0,0)
+	sprop.SetColor(0,0,0)
+
+	imfile = os.path.join(ifolder5,imname)
+	wrender(1,imfile)
+
+	vprop.SetColor(0,0,0)
+	ren.SetBackground(0,0,0)
+	eprop.SetEdgeColor(1,1,1)
+	sprop.SetEdgeColor(1,1,1)
+	eprop.SetColor(1,1,1)
+	sprop.SetColor(1,1,1)
+
+	imfile = os.path.join(ifolder6,imname)
+	wrender(1,imfile)
+
+	ren.RemoveActor(pactor)
+	vprop.SetColor(scolor)
+	vprop.LightingOn()
 	ren.SetBackground(1,1,1)
 	eprop.SetEdgeColor(0,0,0)
 	sprop.SetEdgeColor(0,0,0)

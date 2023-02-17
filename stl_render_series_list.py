@@ -10,10 +10,11 @@ from PIL import Image
 
 
 cfolder = "E:/GIT/DOKTORAT/STL_ORIENT2"		#folder z plikami stl
-ifolder1 = "E:/GIT/DOKTORAT/STL_IMAGES_SW"		#folder z obrazkami
-ifolder2 = "E:/GIT/DOKTORAT/STL_IMAGES_SB"		#folder z obrazkami
-ifolder3 = "E:/GIT/DOKTORAT/STL_IMAGES_WW"		#folder z obrazkami
-ifolder4 = "E:/GIT/DOKTORAT/STL_IMAGES_WB"		#folder z obrazkami
+cfolder = "/home/maciejm/GIT/DOKTORAT/STL_ORIENT2/"
+ifolder1 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_WHITE_BG/"		#folder z obrazkami
+ifolder2 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_BLACK_BG/"		#folder z obrazkami
+ifolder3 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WIREFRAME_WHITE_BG/"		#folder z obrazkami
+ifolder4 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WIREFRAME_BLACK_BG/"		#folder z obrazkami
 
 resolution = 299,299			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
@@ -53,7 +54,8 @@ for i in lista:
 #print(profile[3])
 print(len(profile[0]),len(profile[1]),len(profile[2]),len(profile[3]))
 # sys.exit()
-f = open("E:/GIT/DOKTORAT/camera2.txt","r")
+#f = open("E:/GIT/DOKTORAT/camera2.txt","r")
+f = open("/home/maciejm/PHD/PUBLIKACJA_02/views.txt","r")
 linie = f.read().splitlines()
 f.close()
 

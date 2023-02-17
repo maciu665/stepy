@@ -74,6 +74,7 @@ stepdir = "E:/GIT/DOKTORAT/STEPY"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/PROFILE"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY0"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/BLACHY"
+#stepdir = "/home/maciejm/GIT/STEPY/PARTY2/RURY"
 stls = "/home/maciejm/GIT/STEPY/STL"
 imtmpdir = "/home/maciejm/GIT/STEPY"
 imdir = "/home/maciejm/GIT/STEPY/IMG"
@@ -86,8 +87,11 @@ for i in tsteplista:
         steplista.append(i)
 
 #steplista = [nazwa]
+steplista.sort()
 
+print(len(steplista))
 
+#sys.exit()
 
 
 
@@ -214,6 +218,7 @@ for s in steplista:
 
 
     try:
+    #if 1:
         print(os.path.exists(nazwa))
 
         # shp = get_step_file("E:/GIT/DOKTORAT/model2.stp")
@@ -455,84 +460,85 @@ for s in steplista:
                 print("append",plen, pdir)
                 evlens.append(plen)
 
-        print("evlens",evlens)
-        print(evdirs)
-
-        ldir = evdirs[evlens.index(max(evlens))]
-        print(ldir)
-        print(maxfacedir)
-
-        tzdir = np.array(maxfacedir)
-        zdir = np.array([0,0,-1])
-        xdir = np.array([1,0,0])
-        print(list(tzdir) == list(zdir))
-        print(list(tzdir) == list(zdir*-1))
-
-        rot2z = [None]
-        rldir = None
-
-        if list(tzdir) != list(zdir*-1) and list(tzdir) != list(zdir):
-            print("ROTATE TO Z")
-            print(np.cross(zdir,tzdir))
-            print(np.dot(zdir,tzdir))
-            kros = np.cross(zdir,tzdir)
-            tkros1 = kros/np.linalg.norm(kros)
-            print(tkros1)
-
-            angle = np.arccos(np.dot(zdir,tzdir))
-            print(angle,np.degrees(angle),np.linalg.norm(np.cross(zdir,tzdir)))
-            tkros = tkros1*np.degrees(angle)
-            print(tkros)
-
-            rot = Rotation.from_rotvec(tkros,True)
-            rot2z = rot.as_euler('XYZ',True)
-            print(rot2z)
-
-            rldir = rot.apply(ldir,True)
-            print("LDIR",ldir,rldir)
-            ldir = rldir
-            # sys.exit()
-        print("LDIR",ldir)
-
         ugrid2.SetPoints(pts2)
 
-        if rot2z[0] != None:
-            transowanie = vtk.vtkTransformFilter()
-            trans = vtk.vtkTransform()
-            # trans.Translate(-cob[0], -cob[1], -cob[2])
-            trans.RotateWXYZ(-np.degrees(angle),tkros1[0],tkros1[1],tkros1[2])
-            transowanie.SetTransform(trans)
-            transowanie.SetInputData(ugrid)
-            transowanie.Update()
-            ugrid = transowanie.GetOutput()
+        print("evlens",evlens)
+        print(evdirs)
+        if len(evlens):
+            ldir = evdirs[evlens.index(max(evlens))]
+            print(ldir)
+            print(maxfacedir)
 
-        xangle = None
-        # if list(ldir) != list(xdir*-1) and list(ldir) != list(xdir):
-            # print("dot",np.dot(xdir,ldir))
-        if (abs(abs(np.dot(xdir,ldir))-1)) > 0.0001:
-            print(abs(np.dot(xdir,ldir)-1))
-            print("ROTATE TO X")
-            print(np.cross(xdir,ldir))
-            print("DOT",np.dot(xdir,ldir))
-            xros = np.cross(xdir,ldir)
-            # if np.linalg.norm(xros) == 0:
-                # print(xdir,ldir)
+            tzdir = np.array(maxfacedir)
+            zdir = np.array([0,0,-1])
+            xdir = np.array([1,0,0])
+            print(list(tzdir) == list(zdir))
+            print(list(tzdir) == list(zdir*-1))
+
+            rot2z = [None]
+            rldir = None
+
+            if list(tzdir) != list(zdir*-1) and list(tzdir) != list(zdir):
+                print("ROTATE TO Z")
+                print(np.cross(zdir,tzdir))
+                print(np.dot(zdir,tzdir))
+                kros = np.cross(zdir,tzdir)
+                tkros1 = kros/np.linalg.norm(kros)
+                print(tkros1)
+
+                angle = np.arccos(np.dot(zdir,tzdir))
+                print(angle,np.degrees(angle),np.linalg.norm(np.cross(zdir,tzdir)))
+                tkros = tkros1*np.degrees(angle)
+                print(tkros)
+
+                rot = Rotation.from_rotvec(tkros,True)
+                rot2z = rot.as_euler('XYZ',True)
+                print(rot2z)
+
+                rldir = rot.apply(ldir,True)
+                print("LDIR",ldir,rldir)
+                ldir = rldir
                 # sys.exit()
-            txros1 = xros/np.linalg.norm(xros)
-            print(txros1)
-            print(xdir,ldir)
-            xangle = np.arccos(np.dot(xdir,ldir))
-            print("xangle",math.degrees(xangle))
+            print("LDIR",ldir)
 
-        if xangle != None:
-            transowanie = vtk.vtkTransformFilter()
-            trans = vtk.vtkTransform()
-            # trans.Translate(-cob[0], -cob[1], -cob[2])
-            trans.RotateWXYZ(-np.degrees(xangle),txros1[0],txros1[1],txros1[2])
-            transowanie.SetTransform(trans)
-            transowanie.SetInputData(ugrid)
-            transowanie.Update()
-            ugrid = transowanie.GetOutput()
+    
+            if rot2z[0] != None:
+                transowanie = vtk.vtkTransformFilter()
+                trans = vtk.vtkTransform()
+                # trans.Translate(-cob[0], -cob[1], -cob[2])
+                trans.RotateWXYZ(-np.degrees(angle),tkros1[0],tkros1[1],tkros1[2])
+                transowanie.SetTransform(trans)
+                transowanie.SetInputData(ugrid)
+                transowanie.Update()
+                ugrid = transowanie.GetOutput()
+
+            xangle = None
+            # if list(ldir) != list(xdir*-1) and list(ldir) != list(xdir):
+                # print("dot",np.dot(xdir,ldir))
+            if (abs(abs(np.dot(xdir,ldir))-1)) > 0.0001:
+                print(abs(np.dot(xdir,ldir)-1))
+                print("ROTATE TO X")
+                print(np.cross(xdir,ldir))
+                print("DOT",np.dot(xdir,ldir))
+                xros = np.cross(xdir,ldir)
+                # if np.linalg.norm(xros) == 0:
+                    # print(xdir,ldir)
+                    # sys.exit()
+                txros1 = xros/np.linalg.norm(xros)
+                print(txros1)
+                print(xdir,ldir)
+                xangle = np.arccos(np.dot(xdir,ldir))
+                print("xangle",math.degrees(xangle))
+
+            if xangle != None:
+                transowanie = vtk.vtkTransformFilter()
+                trans = vtk.vtkTransform()
+                # trans.Translate(-cob[0], -cob[1], -cob[2])
+                trans.RotateWXYZ(-np.degrees(xangle),txros1[0],txros1[1],txros1[2])
+                transowanie.SetTransform(trans)
+                transowanie.SetInputData(ugrid)
+                transowanie.Update()
+                ugrid = transowanie.GetOutput()
 
         gf = vtk.vtkGeometryFilter()
         gf.SetInputData(ugrid)
@@ -745,6 +751,7 @@ for s in steplista:
 
     # sys.exit()
     except:
+    #else:
         failist += "%s\n"%nazwa
 
 f = open("/home/maciejm/GIT/STEPY/fail.txt","w")

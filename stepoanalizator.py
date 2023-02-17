@@ -63,6 +63,7 @@ nazwa = "E:/GIT/DOKTORAT/STEPY/dwuteownik_00059.stp"
 stepdir = "E:/GIT/DOKTORAT/STEPY"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/BLACHY/"
 stepdir = "/home/maciejm/GIT/STEPY/PARTY2/PROFILE/"
+stepdir = "/home/maciejm/GIT/STEPY/PARTY2/RURY/"
 
 steplista = os.listdir(stepdir)
 # print(steplista)
