@@ -17,9 +17,12 @@ ifolder5 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_WHITE_BG/"		#fo
 ifolder6 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_BLACK_BG/"		#folder z obrazkami
 ifolder7 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/FEATURE_BLACK_BG/"		#folder z obrazkami
 ifolder8 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/OVERLAY_BLACK_BG/"		#folder z obrazkami
+ifolder9 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WNOAA_BLACK_BG/"		#folder z obrazkami
+ifolder10 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SNOAA_BLACK_BG/"		#folder z obrazkami
+ifolder11 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/ZBUFFER_BLACK_BG/"		#folder z obrazkami
 cfolder = "/home/maciejm/PHD/PUBLIKACJA_02/STL"
 
-resolution = 299,299			#rodzielczosc
+resolution = 224,224			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
 surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
@@ -90,6 +93,51 @@ def wrender(im,imfile,killit=0):
         iw.SetFileName(imfile)
         iw.SetInputData(w2if.GetOutput())
         iw.Write()
+        if killit:
+            sys.exit()
+    else:
+        win.OffScreenRenderingOff()
+        # ren.ResetCamera()
+        win.Render()
+        iren.Initialize()
+        iren.Start()
+        win.Render()
+
+def zrender(im,imfile,killit=0):
+    #print("\n\nZ\n\n")
+    if im:
+        win.Render()
+        print("\n\n",imfile)
+
+        w2if = vtk.vtkWindowToImageFilter()
+        w2if.SetInputBufferTypeToZBuffer()
+        w2if.SetInput(win)
+        w2if.Update()
+        zrange = w2if.GetOutput().GetPointData().GetArray("ImageScalars").GetRange()
+        print("zrange",zrange)
+        #zscale = 255/(zrange[1]-zrange[0])
+        zscale = 1
+        iscale = vtk.vtkImageShiftScale()
+
+        iscale.SetInputConnection(w2if.GetOutputPort())
+        iscale.SetShift(0)
+        iscale.SetScale(255)
+        iscale.SetOutputScalarTypeToUnsignedChar()
+        iscale.Update()
+        print("iscale RANGE",iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange())
+        izrange = iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange()
+        #iscale.ClampOverflowOn()
+        iscale.SetShift(-1*izrange[0])
+        iscale.SetScale(255*255/(izrange[1]-izrange[0]))
+        iscale.Update()
+        print("iscale RANGE 2",iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange())
+
+        iw = vtk.vtkPNGWriter()
+        iw.SetFileName(imfile)
+        #print(imfile)
+        iw.SetInputData(iscale.GetOutput())
+        print(iw.Write())
+        #print("koza")
         if killit:
             sys.exit()
     else:
@@ -227,7 +275,7 @@ ren.ResetCamera()
 
 lastfile = lista[0]
 
-for l in range(len(linie[:])):
+for l in range(len(linie[:5])):
     linia = linie[l].split("_")
     print(linia)
     type = int(linia[1])
@@ -264,10 +312,7 @@ for l in range(len(linie[:])):
     z = math.sin(math.radians(elevation))
     vector = [x,y,z]
     print(vector)
-    imname = plik.replace(".stl","")+"-view%s.png"%(str(int(linia[2])+1).zfill(2))
-    imfile = os.path.join(ifolder1,imname)
-    print(plik, imname)
-    print(imfile)
+    
     
     mult = 1
     if type in [0,1,2,3]:
@@ -339,10 +384,30 @@ for l in range(len(linie[:])):
 
     ren.AddActor(pactor)
     ren.SetBackground(1,1,1)
+
+    imname = plik.replace(".stl","")+"-view%s.png"%(str(int(linia[2])+1).zfill(2))
+    imfile = os.path.join(ifolder1,imname)
+    print(plik, imname)
+    print(imfile)
+
     #wrender(1,imfile)
     ren.SetBackground(0,0,0)
+
+    imfile = os.path.join(ifolder11,imname)
+    zrender(1,imfile)
+
+
+
     imfile = os.path.join(ifolder2,imname)
     #wrender(1,imfile)
+    ren.UseFXAAOff()
+    #print(win.GetMultiSamples())
+    #sys.exit()
+    win.SetMultiSamples(0)
+    imfile = os.path.join(ifolder10,imname)
+    #wrender(1,imfile)
+    ren.UseFXAAOn()
+    win.SetMultiSamples(8)
 
     #ren.RemoveActor(pactor)
     #vprop.SetColor(scolor)
@@ -382,14 +447,14 @@ for l in range(len(linie[:])):
     vprop.LightingOn()
 
     imfile = os.path.join(ifolder7,imname)
-    wrender(1,imfile)
+    #wrender(1,imfile)
 
     emapper.SetResolveCoincidentTopologyLineOffsetParameters(0,-100000)
     smapper.SetResolveCoincidentTopologyLineOffsetParameters(0,-100000)
 
 
     imfile = os.path.join(ifolder8,imname)
-    wrender(1,imfile)
+    #wrender(1,imfile)
 
     ren.RemoveActor(pactor)
     vprop.SetColor(scolor)
@@ -413,6 +478,15 @@ for l in range(len(linie[:])):
     sprop.SetColor(1,1,1)
     imfile = os.path.join(ifolder4,imname)
     #wrender(1,imfile)
+    ren.UseFXAAOff()
+    #print(win.GetMultiSamples())
+    #sys.exit()
+    win.SetMultiSamples(0)
+    imfile = os.path.join(ifolder9,imname)
+    #wrender(1,imfile)
+    ren.UseFXAAOn()
+    win.SetMultiSamples(8)
+
 
 sys.exit()
 

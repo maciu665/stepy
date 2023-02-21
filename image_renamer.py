@@ -9,7 +9,9 @@ idir = "/home/maciejm/PHD/PUBLIKACJA_02/299bg/"
 #idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_WHITE_BG"
 #idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_BLACK_BG"
 #idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WIREFRAME_WHITE_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WIREFRAME_BLACK_BG"
+idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/FEATURE_BLACK_BG"
+idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WNOAA_BLACK_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SNOAA_BLACK_BG"
 
 nazwy = ["C-BEAM","I-BEAM","L-BEAM","FLAT-BAR","SQUARE-BAR","ROUND-BAR","HOLLOW-SECTION","PIPE"]
 old_nazwy = ["ceownik","dwuteownik","katownik","plaskownik","kwadratowy","okragly","profil","rura"]
