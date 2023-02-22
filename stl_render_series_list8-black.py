@@ -7,22 +7,21 @@ from stl_render_fun import *
 from PIL import Image
 
 #import vtkOSPRayPass
+isize = 299
+idirname = "images2"
 
-
-ifolder1 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SHADED_WHITE_BG/"		#folder z obrazkami
-ifolder2 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SHADED_BLACK_BG/"		#folder z obrazkami
-ifolder3 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WIREFRAME_WHITE_BG/"		#folder z obrazkami
-ifolder4 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WIREFRAME_BLACK_BG/"		#folder z obrazkami
-ifolder5 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_WHITE_BG/"		#folder z obrazkami
-ifolder6 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/HIDDEN_BLACK_BG/"		#folder z obrazkami
-ifolder7 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/FEATURE_BLACK_BG/"		#folder z obrazkami
-ifolder8 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/OVERLAY_BLACK_BG/"		#folder z obrazkami
-ifolder9 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WNOAA_BLACK_BG/"		#folder z obrazkami
-ifolder10 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SNOAA_BLACK_BG/"		#folder z obrazkami
-ifolder11 = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/ZBUFFER_BLACK_BG/"		#folder z obrazkami
+ifolderSB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/SHADED_BLACK_BG/"%(idirname,isize)
+ifolderWB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/WIREFRAME_BLACK_BG/"%(idirname,isize)
+ifolderHB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/HIDDEN_BLACK_BG/"%(idirname,isize)
+ifolderFB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/FEATURE_BLACK_BG/"%(idirname,isize)
+ifolderOB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/OVERLAY_BLACK_BG/"%(idirname,isize)
+ifolderNW = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/WNOAA_BLACK_BG/"%(idirname,isize)
+ifolderNS = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/SNOAA_BLACK_BG/"%(idirname,isize)
+ifolderAO = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/AMBIENT_BLACK_BG/"%(idirname,isize)
+ifolders = [ifolderFB,ifolderHB,ifolderNS,ifolderNW,ifolderNW,ifolderOB,ifolderSB,ifolderWB]
 cfolder = "/home/maciejm/PHD/PUBLIKACJA_02/STL"
 
-resolution = 299,299			#rodzielczosc
+resolution = isize,isize			#rodzielczosc
 bgcolor = 0,0,0					#kolor tla, rgb w zakresie 0-1
 surface = 1						#czy wyswietlac powierzchnie
 scolor = 0.5,0.5,0.5			#kolor powierzchni
@@ -47,6 +46,13 @@ lista.sort()
 
 nazwy = ["C-BEAM_","I-BEAM_","L-BEAM_","FLAT-BAR_","SQUARE-BAR_","ROUND-BAR_","HOLLOW-SECTION_","PIPE_"]
 
+for k in ifolders:
+    try:
+        os.mkdir(k)
+    except:
+        print("jest")
+
+#sys.exit()
 
 profile = [[],[],[],[],[],[],[],[]]
 for i in lista:
@@ -76,13 +82,27 @@ f = open("/home/maciejm/PHD/PUBLIKACJA_02/views1.txt","r")
 linie = f.read().splitlines()
 f.close()
 
-print(len(linie))
+#print(len(linie))
 #sys.exit()
-
-
 
 def wrender(im,imfile,killit=0):
     if im:
+
+        '''
+        basicPasses = vtk.vtkRenderStepsPass()
+        sceneSize = 1000
+
+        ssao = vtk.vtkSSAOPass()
+        ssao.SetRadius(0.1 * sceneSize)
+        ssao.SetBias(0.001 * sceneSize)
+        ssao.SetKernelSize(128)
+        ssao.BlurOn()
+        ssao.SetDelegatePass(basicPasses)
+
+        ren.SetPass(ssao)
+        '''
+
+
         win.Render()
 
         w2if = vtk.vtkWindowToImageFilter()
@@ -103,41 +123,32 @@ def wrender(im,imfile,killit=0):
         iren.Start()
         win.Render()
 
-def zrender(im,imfile,killit=0):
-    #print("\n\nZ\n\n")
+def aorender(im,imfile,killit=0):
     if im:
+
+        
+        basicPasses = vtk.vtkRenderStepsPass()
+        sceneSize = 2000
+
+        ssao = vtk.vtkSSAOPass()
+        ssao.SetRadius(0.1 * sceneSize)
+        ssao.SetBias(0.001 * sceneSize)
+        ssao.SetKernelSize(128)
+        ssao.BlurOn()
+        ssao.SetDelegatePass(basicPasses)
+
+        ren.SetPass(ssao)
+        
         win.Render()
-        print("\n\n",imfile)
 
         w2if = vtk.vtkWindowToImageFilter()
-        w2if.SetInputBufferTypeToZBuffer()
         w2if.SetInput(win)
         w2if.Update()
-        zrange = w2if.GetOutput().GetPointData().GetArray("ImageScalars").GetRange()
-        print("zrange",zrange)
-        #zscale = 255/(zrange[1]-zrange[0])
-        zscale = 1
-        iscale = vtk.vtkImageShiftScale()
-
-        iscale.SetInputConnection(w2if.GetOutputPort())
-        iscale.SetShift(0)
-        iscale.SetScale(255)
-        iscale.SetOutputScalarTypeToUnsignedChar()
-        iscale.Update()
-        print("iscale RANGE",iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange())
-        izrange = iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange()
-        #iscale.ClampOverflowOn()
-        iscale.SetShift(-1*izrange[0])
-        iscale.SetScale(255*255/(izrange[1]-izrange[0]))
-        iscale.Update()
-        print("iscale RANGE 2",iscale.GetOutput().GetPointData().GetArray("ImageScalars").GetRange())
 
         iw = vtk.vtkPNGWriter()
         iw.SetFileName(imfile)
-        #print(imfile)
-        iw.SetInputData(iscale.GetOutput())
-        print(iw.Write())
-        #print("koza")
+        iw.SetInputData(w2if.GetOutput())
+        iw.Write()
         if killit:
             sys.exit()
     else:
@@ -150,6 +161,7 @@ def zrender(im,imfile,killit=0):
 
 im = 1
 
+#ren = vtk.vtkOpenGLRenderer()
 ren = vtk.vtkRenderer()
 win = vtkwin()
 win.AddRenderer(ren)
@@ -246,12 +258,12 @@ camera.SetParallelProjection(camper)
 lightKit = vtk.vtkLightKit()
 
 
-lightKit.SetKeyLightWarmth(0.6)
+lightKit.SetKeyLightWarmth(0.5)
 lightKit.SetKeyLightIntensity(0.75)
 lightKit.SetKeyLightElevation(50)
 lightKit.SetKeyLightAzimuth(10)
 
-lightKit.SetFillLightWarmth(0.4)
+lightKit.SetFillLightWarmth(0.5)
 lightKit.SetKeyToFillRatio(3)
 lightKit.SetFillLightElevation(-75)
 lightKit.SetFillLightAzimuth(-10)
@@ -287,23 +299,6 @@ for l in range(len(linie[:])):
     cy = float(coords.split(", ")[1])
     cz = float(coords.split(", ")[2])
     #sys.exit()
-
-    '''
-    typ = plik.rsplit("_")[0]
-    klasa = os.path.join(ifolder,typ)
-    if os.path.exists(klasa) == 0:
-        os.mkdir(klasa)
-
-    imagename = os.path.join(klasa,plik.replace(".stl",".png"))
-    print(imagename)
-
-    imagename1 = imagename.replace(".png","-view01.png")
-    imagename2 = imagename.replace(".png","-view02.png")
-    imagename3 = imagename.replace(".png","-view03.png")
-    imagename4 = imagename.replace(".png","-view04.png")
-    print(typ)
-    '''
-
     ################################################################################		RENDEROWANIE
     azimuth = float(linia[3])
     elevation = float(linia[4])
@@ -361,13 +356,15 @@ for l in range(len(linie[:])):
 
         lastfile = plik
 
+    imname = plik.replace(".stl","")+"-view%s.png"%(str(int(linia[2])+1).zfill(2))
+    
     #print(camera.GetPosition())
     #print(camera.GetFocalPoint())
-    #print(camera.GetClippingRange())
+    if "kwadrat" in imname:
+        print("kwadrat")
+    print(camera.GetClippingRange())
     camera.SetViewAngle(cangle)
     #ren.ResetCamera()
-    # print(camera.GetPosition())
-    ren.ResetCameraClippingRange()
 
     sil = vtk.vtkPolyDataSilhouette()
     sil.SetInputData(stl)
@@ -382,36 +379,38 @@ for l in range(len(linie[:])):
     except:
         pass
 
+    ########################################################################################### SB
     ren.AddActor(pactor)
-    ren.SetBackground(1,1,1)
+    ren.ResetCameraClippingRange()
+    
 
-    imname = plik.replace(".stl","")+"-view%s.png"%(str(int(linia[2])+1).zfill(2))
-    imfile = os.path.join(ifolder1,imname)
-    print(plik, imname)
-    print(imfile)
-
-    #wrender(1,imfile)
     ren.SetBackground(0,0,0)
+    ren.AddActor(pactor)
+    vprop.SetColor(scolor)
 
-    imfile = os.path.join(ifolder11,imname)
-    #zrender(1,imfile)
+    vprop.SetColor(1,1,1)
+    vprop.LightingOff()
 
+    imfile = os.path.join(ifolderAO,imname)
+    #aorender(1,imfile)
 
+    vprop.SetColor(scolor)
+    vprop.LightingOn()
 
-    imfile = os.path.join(ifolder2,imname)
+    imfile = os.path.join(ifolderSB,imname)
     #wrender(1,imfile)
+
     ren.UseFXAAOff()
     #print(win.GetMultiSamples())
     #sys.exit()
     win.SetMultiSamples(0)
-    imfile = os.path.join(ifolder10,imname)
-    wrender(1,imfile)
+    imfile = os.path.join(ifolderNS,imname)
+    #wrender(1,imfile)
     ren.UseFXAAOn()
     win.SetMultiSamples(8)
 
     #ren.RemoveActor(pactor)
     #vprop.SetColor(scolor)
-    vprop.SetColor(1,1,1)
     vprop.LightingOff()
     emapper.SetResolveCoincidentTopologyToPolygonOffset()
     emapper.SetResolveCoincidentTopologyLineOffsetParameters(1,-10)
@@ -419,14 +418,6 @@ for l in range(len(linie[:])):
 
     ren.AddActor(eactor)
     ren.AddActor(sactor)
-    ren.SetBackground(1,1,1)
-    eprop.SetEdgeColor(0,0,0)
-    sprop.SetEdgeColor(0,0,0)
-    eprop.SetColor(0,0,0)
-    sprop.SetColor(0,0,0)
-
-    imfile = os.path.join(ifolder5,imname)
-    #wrender(1,imfile)
 
     vprop.SetColor(0,0,0)
     ren.SetBackground(0,0,0)
@@ -435,63 +426,48 @@ for l in range(len(linie[:])):
     eprop.SetColor(1,1,1)
     sprop.SetColor(1,1,1)
 
-    imfile = os.path.join(ifolder6,imname)
+    imfile = os.path.join(ifolderHB,imname)
     #wrender(1,imfile)
 
     vprop.SetColor(scolor)
-    ren.SetBackground(0,0,0)
-    eprop.SetEdgeColor(1,1,1)
-    sprop.SetEdgeColor(1,1,1)
-    eprop.SetColor(1,1,1)
-    sprop.SetColor(1,1,1)
     vprop.LightingOn()
 
-    imfile = os.path.join(ifolder7,imname)
+    imfile = os.path.join(ifolderFB,imname)
     wrender(1,imfile)
 
     emapper.SetResolveCoincidentTopologyLineOffsetParameters(0,-100000)
     smapper.SetResolveCoincidentTopologyLineOffsetParameters(0,-100000)
+    
 
-
-    imfile = os.path.join(ifolder8,imname)
-    wrender(1,imfile)
+    imfile = os.path.join(ifolderOB,imname)
+    #wrender(1,imfile)
 
     ren.RemoveActor(pactor)
-    vprop.SetColor(scolor)
     vprop.LightingOn()
-    ren.SetBackground(1,1,1)
-    eprop.SetEdgeColor(0,0,0)
-    sprop.SetEdgeColor(0,0,0)
-    eprop.SetColor(0,0,0)
-    sprop.SetColor(0,0,0)
-
     emapper.SetResolveCoincidentTopologyLineOffsetParameters(1,-10)
     smapper.SetResolveCoincidentTopologyLineOffsetParameters(1,-10)
-
-    imfile = os.path.join(ifolder3,imname)
-    #wrender(1,imfile)
 
     ren.SetBackground(0,0,0)
     eprop.SetEdgeColor(1,1,1)
     sprop.SetEdgeColor(1,1,1)
     eprop.SetColor(1,1,1)
     sprop.SetColor(1,1,1)
-    imfile = os.path.join(ifolder4,imname)
+    imfile = os.path.join(ifolderWB,imname)
     #wrender(1,imfile)
     ren.UseFXAAOff()
-    #print(win.GetMultiSamples())
-    #sys.exit()
     win.SetMultiSamples(0)
-    imfile = os.path.join(ifolder9,imname)
-    wrender(1,imfile)
+    imfile = os.path.join(ifolderNW,imname)
+    #wrender(1,imfile)
     ren.UseFXAAOn()
     win.SetMultiSamples(8)
+    #if "kwadrat" in imname:
+    #    sys.exit()
 
 
 sys.exit()
 
 #
-#ifolder1 = "E:/GIT/DOKTORAT/STL_IMAGES_SW"		#folder z obrazkami
-#ifolder2 = "E:/GIT/DOKTORAT/STL_IMAGES_SB"		#folder z obrazkami
-#ifolder3 = "E:/GIT/DOKTORAT/STL_IMAGES_WW"		#folder z obrazkami
-#ifolder4 = "E:/GIT/DOKTORAT/STL_IMAGES_WB"
+#ifolder1 = "E:/GIT/DOKTORAT/STL_%s_SW"		#folder z obrazkami
+#ifolderSB = "E:/GIT/DOKTORAT/STL_%s_SB"		#folder z obrazkami
+#ifolder3 = "E:/GIT/DOKTORAT/STL_%s_WW"		#folder z obrazkami
+#ifolderWB = "E:/GIT/DOKTORAT/STL_%s_WB"

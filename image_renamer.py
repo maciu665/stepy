@@ -3,15 +3,16 @@ import sys
 import shutil
 
 idir = "/home/maciejm/PHD/PUBLIKACJA_02/299bg/"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/RENDER_SIMPLE"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/HIDDEN_WHITE_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/HIDDEN_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_WHITE_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/SHADED_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/WIREFRAME_WHITE_BG"
-idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res299/FEATURE_BLACK_BG"
-idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/WNOAA_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images/res224/SNOAA_BLACK_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/RENDER_SIMPLE"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/HIDDEN_WHITE_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/HIDDEN_BLACK_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/SHADED_WHITE_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/SHADED_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/WIREFRAME_BLACK_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/FEATURE_BLACK_BG"
+#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/OVERLAY_BLACK_BG"
+idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/WNOAA_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/SNOAA_BLACK_BG"
 
 nazwy = ["C-BEAM","I-BEAM","L-BEAM","FLAT-BAR","SQUARE-BAR","ROUND-BAR","HOLLOW-SECTION","PIPE"]
 old_nazwy = ["ceownik","dwuteownik","katownik","plaskownik","kwadratowy","okragly","profil","rura"]
@@ -32,8 +33,10 @@ for i in tlist:
 list.sort()
 print(list[:10])
 
+#sys.exit()
 
 
+'''
 imnum = 0
 for part in range(250):
     for type in range(8):
@@ -43,11 +46,12 @@ for part in range(250):
             print(nname)
             shutil.copy(os.path.join(idir,list[imnum]),os.path.join(os.path.join(idir,nazwy[type]),nname+".png"))
             imnum += 1
-
-
-
-
+    sys.exit()
 '''
+
+
+
+
 for i in list:
     namestr = i.split("_")[0]
     nazwa = nazwy[old_nazwy.index(namestr)]
@@ -55,4 +59,4 @@ for i in list:
     print(nname)
     shutil.copy(os.path.join(idir,i),os.path.join(os.path.join(idir,nazwa),nname))
     #shutil
-'''
+
