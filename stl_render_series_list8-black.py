@@ -7,8 +7,8 @@ from stl_render_fun import *
 from PIL import Image
 
 #import vtkOSPRayPass
-isize = 299
-idirname = "images2"
+isize = 224
+idirname = "images3"
 
 ifolderSB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/SHADED_BLACK_BG/"%(idirname,isize)
 ifolderWB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/WIREFRAME_BLACK_BG/"%(idirname,isize)
@@ -78,7 +78,7 @@ for i in lista:
 #print(profile[3])
 print(len(profile[0]),len(profile[1]),len(profile[2]),len(profile[3]),len(profile[4]),len(profile[5]),len(profile[6]),len(profile[7]))
 # sys.exit()
-f = open("/home/maciejm/PHD/PUBLIKACJA_02/views1.txt","r")
+f = open("/home/maciejm/PHD/PUBLIKACJA_02/views43.txt","r")
 linie = f.read().splitlines()
 f.close()
 
@@ -398,14 +398,14 @@ for l in range(len(linie[:])):
     vprop.LightingOn()
 
     imfile = os.path.join(ifolderSB,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
 
     ren.UseFXAAOff()
     #print(win.GetMultiSamples())
     #sys.exit()
     win.SetMultiSamples(0)
     imfile = os.path.join(ifolderNS,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
     ren.UseFXAAOn()
     win.SetMultiSamples(8)
 
@@ -427,7 +427,7 @@ for l in range(len(linie[:])):
     sprop.SetColor(1,1,1)
 
     imfile = os.path.join(ifolderHB,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
 
     vprop.SetColor(scolor)
     vprop.LightingOn()
@@ -440,7 +440,7 @@ for l in range(len(linie[:])):
     
 
     imfile = os.path.join(ifolderOB,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
 
     ren.RemoveActor(pactor)
     vprop.LightingOn()
@@ -453,11 +453,11 @@ for l in range(len(linie[:])):
     eprop.SetColor(1,1,1)
     sprop.SetColor(1,1,1)
     imfile = os.path.join(ifolderWB,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
     ren.UseFXAAOff()
     win.SetMultiSamples(0)
     imfile = os.path.join(ifolderNW,imname)
-    #wrender(1,imfile)
+    wrender(1,imfile)
     ren.UseFXAAOn()
     win.SetMultiSamples(8)
     #if "kwadrat" in imname:

@@ -3,16 +3,14 @@ import sys
 import shutil
 
 idir = "/home/maciejm/PHD/PUBLIKACJA_02/299bg/"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/RENDER_SIMPLE"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/HIDDEN_WHITE_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/HIDDEN_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/SHADED_WHITE_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/SHADED_BLACK_BG"
-# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/WIREFRAME_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res299/FEATURE_BLACK_BG"
-#idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/OVERLAY_BLACK_BG"
-idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/WNOAA_BLACK_BG"
-# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images2/res224/SNOAA_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/RENDER_SIMPLE"
+idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/HIDDEN_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/SHADED_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/WIREFRAME_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/FEATURE_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/OVERLAY_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/WNOAA_BLACK_BG"
+# idir = "/home/maciejm/PHD/PUBLIKACJA_02/images30/res299/SNOAA_BLACK_BG"
 
 nazwy = ["C-BEAM","I-BEAM","L-BEAM","FLAT-BAR","SQUARE-BAR","ROUND-BAR","HOLLOW-SECTION","PIPE"]
 old_nazwy = ["ceownik","dwuteownik","katownik","plaskownik","kwadratowy","okragly","profil","rura"]

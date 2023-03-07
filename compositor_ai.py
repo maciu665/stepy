@@ -4,12 +4,12 @@ import sys
 import os
 
 isize = 299
-idirname = "images2"
+idirname = "images3"
 
 ifolderSB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/SHADED_BLACK_BG/"%(idirname,isize)
-ifolderWB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/WIREFRAME_BLACK_BG/"%(idirname,isize)
-ifolderFB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/FEATURE_BLACK_BG/"%(idirname,isize)
-ifolderC1 = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/COMP1_BLACK_BG/"%(idirname,isize)
+ifolderWB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/FEATURE_BLACK_BG/"%(idirname,isize)
+ifolderFB = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/OVERLAY_BLACK_BG/"%(idirname,isize)
+ifolderC1 = "/home/maciejm/PHD/PUBLIKACJA_02/%s/res%i/COMP3_BLACK_BG/"%(idirname,isize)
 
 try:
     os.mkdir(ifolderC1)
@@ -25,7 +25,7 @@ for file in glob.glob("%s/*/*.png"%ifolderSB):
 for folder in glob.glob("%s/*"%ifolderSB):
     #print(folder)
     try:
-        os.mkdir(folder.replace("SHADED","COMP1"))
+        os.mkdir(folder.replace("SHADED","COMP3"))
     except:
         print("jest")
 
@@ -35,9 +35,9 @@ print(os.path.dirname(shfiles[0]))
 #sys.exit()
 for shfile in shfiles:
     #shfile = shfiles[0]
-    wffile = shfile.replace("SHADED","WIREFRAME")
-    fbfile = shfile.replace("SHADED","FEATURE")
-    c1file = shfile.replace("SHADED","COMP1")
+    wffile = shfile.replace("SHADED","FEATURE")
+    fbfile = shfile.replace("SHADED","OVERLAY")
+    c1file = shfile.replace("SHADED","COMP3")
 
     shimage = cv2.imread(shfile)
     wfimage = cv2.imread(wffile)
